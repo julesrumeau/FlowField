@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlowField</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0f;
+      color: #e0e0e0;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      gap: 1rem;
+    }
+    h1 { font-size: 2rem; letter-spacing: 0.2em; }
+    p  { color: #666; font-size: 0.85rem; }
+    #api-status { color: #444; }
+    #api-status.ok  { color: #4caf50; }
+    #api-status.err { color: #f44336; }
+  </style>
+</head>
+<body>
+  <h1>FlowField</h1>
+  <p>Simulation de champ vectoriel génératif</p>
+  <p id="api-status">Vérification de l'API…</p>
+
+  <script>
+    fetch('/api/health')
+      .then(r => r.json())
+      .then(d => {
+        const el = document.getElementById('api-status');
+        el.textContent = 'API : ' + d.status + ' — DB : ' + d.db;
+        el.className = d.status === 'ok' ? 'ok' : 'err';
+      })
+      .catch(() => {
+        const el = document.getElementById('api-status');
+        el.textContent = 'API injoignable';
+        el.className = 'err';
+      });
+  </script>
+</body>
+</html>
