@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.db.client import init_db
 from src.routes.presets import router as presets_router
+from src.db.client import get_pool
 
 
 @asynccontextmanager
@@ -25,4 +26,12 @@ app.include_router(presets_router)
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    db_status = "ko"
+    try:
+        p = await get_pool()
+        async with p.acquire() as conn:
+            await conn.fetchval("SELECT 1")
+        db_status = "ok"
+    except Exception:
+        pass
+    return {"status": "ok", "db": db_status}

@@ -2,6 +2,7 @@ import { FlowField }      from './simulation/FlowField.js';
 import { ParticleSystem } from './simulation/ParticleSystem.js';
 import { ParticleMesh }   from './renderer/ParticleMesh.js';
 import { Renderer }       from './renderer/Renderer.js';
+import { Controls }       from './ui/Controls.js';
 
 const canvas = document.getElementById('canvas');
 
@@ -19,3 +20,5 @@ const renderer       = new Renderer({ canvas, particleSystem, particleMesh });
 
 renderer.init();
 renderer.start();
+
+new Controls({ particleSystem, particleMesh, flowField });
