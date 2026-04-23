@@ -11,7 +11,7 @@ export class Controls {
     panel.id = 'controls';
 
     const sliders = [
-      { key: 'speed',         label: 'Speed',      min: 0.1,  max: 10.0,  step: 0.1,  value: 0.8   },
+      { key: 'speed',         label: 'Speed',      min: 0.1,  max: 50.0,  step: 0.1,  value: 0.8   },
       { key: 'turbulence',    label: 'Turbulence', min: 0.01, max: 1.0,   step: 0.01, value: 0.3   },
       { key: 'noiseScale',    label: 'Noise Scale',min: 0.1,  max: 5.0,   step: 0.1,  value: 1.2   },
       { key: 'particleCount', label: 'Particles',  min: 1000, max: 150000,step: 1000, value: 80000 },
