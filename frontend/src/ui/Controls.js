@@ -86,10 +86,11 @@ export class Controls {
 
   setParams(params) {
     for (const [key, value] of Object.entries(params)) {
-      if (this._inputs[key]) {
-        this._inputs[key].value = value;
-        this._inputs[key].dispatchEvent(new Event('input'));
-      }
+      if (!this._inputs[key]) continue;
+      const numeric = parseFloat(value);
+      if (!Number.isFinite(numeric)) continue;
+      this._inputs[key].value = numeric;
+      this._inputs[key].dispatchEvent(new InputEvent('input'));
     }
   }
 }

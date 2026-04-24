@@ -23,15 +23,6 @@ export class ParticleSystem {
     }
   }
 
-  _respawn(i) {
-    const b = this._bounds;
-    this.positions[i * 3]     = (Math.random() * 2 - 1) * b;
-    this.positions[i * 3 + 1] = (Math.random() * 2 - 1) * b;
-    this.positions[i * 3 + 2] = (Math.random() * 2 - 1) * b;
-    this._velocities[i * 3]     = 0;
-    this._velocities[i * 3 + 1] = 0;
-    this._velocities[i * 3 + 2] = 0;
-  }
 
   setParams({ speed, turbulence }) {
     if (speed      !== undefined) this._speed      = speed;
@@ -40,7 +31,7 @@ export class ParticleSystem {
 
   setCount(n) {
     const prev = this._count;
-    this._count = Math.max(1000, Math.min(n, MAX_COUNT));
+    this._count = Math.max(1000, Math.min(Math.round(n), MAX_COUNT));
     if (this._count > prev) {
       const b = this._bounds;
       for (let i = prev; i < this._count; i++) {
@@ -79,11 +70,12 @@ export class ParticleSystem {
       this.positions[i3 + 1] += this._velocities[i3 + 1] * dt;
       this.positions[i3 + 2] += this._velocities[i3 + 2] * dt;
 
-      if (Math.abs(this.positions[i3]) > b ||
-          Math.abs(this.positions[i3 + 1]) > b ||
-          Math.abs(this.positions[i3 + 2]) > b) {
-        this._respawn(i);
-      }
+      if (this.positions[i3]     >  b) this.positions[i3]     = -b;
+      if (this.positions[i3]     < -b) this.positions[i3]     =  b;
+      if (this.positions[i3 + 1] >  b) this.positions[i3 + 1] = -b;
+      if (this.positions[i3 + 1] < -b) this.positions[i3 + 1] =  b;
+      if (this.positions[i3 + 2] >  b) this.positions[i3 + 2] = -b;
+      if (this.positions[i3 + 2] < -b) this.positions[i3 + 2] =  b;
     }
   }
 }
