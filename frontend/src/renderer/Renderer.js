@@ -3,12 +3,13 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { PostProcessing } from './PostProcessing.js';
 
 export class Renderer {
-  constructor({ canvas, particleSystem, particleMesh, trailLength = 0.95, bloomStrength = 1.0 }) {
+  constructor({ canvas, particleSystem, particleMesh, trailLength = 0.95, bloomStrength = 1.0, bounds }) {
     this._canvas         = canvas;
     this._particleSystem = particleSystem;
     this._particleMesh   = particleMesh;
     this._trailLength    = trailLength;
     this._bloomStrength  = bloomStrength;
+    this._bounds         = bounds;
     this._time   = 0;
     this._lastTs = null;
   }
@@ -60,7 +61,7 @@ export class Renderer {
 
   tick(dt, time) {
     this._particleSystem.update(dt, time);
-    this._particleMesh.sync();
+    this._particleMesh.sync(this._particleSystem.positions, this._particleSystem.count, this._bounds);
     this._controls.update();
     this._post.render();
   }
