@@ -15,16 +15,25 @@ function makeCircleTexture() {
   return new THREE.CanvasTexture(canvas);
 }
 
+function smoothstep(edge0, edge1, x) {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
 export class ParticleMesh {
   constructor(positions) {
+    const maxCount = positions.length / 3;
+    this._colors = new Float32Array(maxCount * 3);
+
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(this._colors, 3));
 
     const material = new THREE.PointsMaterial({
       size: 1.5,
       sizeAttenuation: true,
       blending: THREE.AdditiveBlending,
-      color: 0xffffff,
+      vertexColors: true,
       transparent: true,
       depthWrite: false,
       depthTest: false,
@@ -45,7 +54,22 @@ export class ParticleMesh {
     this._material.size = n;
   }
 
-  sync() {
+  sync(positions, count, bounds) {
+    const colors = this._colors;
+    const fadeStart = bounds * 0.75;
+
+    for (let i = 0; i < count; i++) {
+      const x = positions[i * 3];
+      const y = positions[i * 3 + 1];
+      const z = positions[i * 3 + 2];
+      const dist = Math.sqrt(x * x + y * y + z * z);
+      const f = 1 - smoothstep(fadeStart, bounds, dist);
+      colors[i * 3]     = f;
+      colors[i * 3 + 1] = f;
+      colors[i * 3 + 2] = f;
+    }
+
+    this._geometry.attributes.color.needsUpdate    = true;
     this._geometry.attributes.position.needsUpdate = true;
   }
 }
