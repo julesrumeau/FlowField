@@ -56,14 +56,24 @@ export class ParticleMesh {
 
   sync(positions, count, bounds) {
     const colors = this._colors;
-    const fadeStart = bounds * 0.75;
+    const fadeStart = bounds * 0.4;
 
     for (let i = 0; i < count; i++) {
       const x = positions[i * 3];
       const y = positions[i * 3 + 1];
       const z = positions[i * 3 + 2];
       const dist = Math.sqrt(x * x + y * y + z * z);
-      const f = 1 - smoothstep(fadeStart, bounds, dist);
+
+      const noise =
+        (Math.sin(x * 0.11) +
+        Math.sin(y * 0.13) +
+        Math.sin(z * 0.17)) * 0.2;
+
+      const d = dist + noise * bounds * 0.15;
+
+      const t = smoothstep(fadeStart, bounds, d);
+      const f = 1 - t * t;
+
       colors[i * 3]     = f;
       colors[i * 3 + 1] = f;
       colors[i * 3 + 2] = f;

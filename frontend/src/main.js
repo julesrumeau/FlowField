@@ -19,8 +19,14 @@ const bloomStrength  = 1.0;
 const flowField      = new FlowField({ noiseScale, seed });
 const particleSystem = new ParticleSystem({ particleCount, flowField, speed, turbulence, bounds });
 const particleMesh   = new ParticleMesh(particleSystem.positions);
-const renderer       = new Renderer({ canvas, particleSystem, particleMesh, trailLength, bloomStrength });
-
+const renderer = new Renderer({
+  canvas,
+  particleSystem,
+  particleMesh,
+  trailLength,
+  bloomStrength,
+  bounds
+});
 renderer.init();
 renderer.start();
 
