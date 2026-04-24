@@ -39,12 +39,22 @@ export class PresetPanel {
       const presets = await listPresets();
       this._renderList(presets);
     } catch {
-      this._list.textContent = 'Erreur chargement';
+      // Fix #5: use _errorMsg instead of overwriting _list content
+      this._errorMsg.textContent = 'Erreur chargement';
     }
   }
 
   _renderList(presets) {
     this._list.innerHTML = '';
+    if (presets.length === 0) {
+      // Fix #9: empty state message
+      const empty = document.createElement('span');
+      empty.className = 'preset-name';
+      empty.style.cursor = 'default';
+      empty.textContent = 'Aucun preset sauvegardé';
+      this._list.appendChild(empty);
+      return;
+    }
     for (const preset of presets) {
       this._list.appendChild(this._row(preset));
     }
@@ -63,6 +73,8 @@ export class PresetPanel {
     const del = document.createElement('button');
     del.className = 'preset-delete';
     del.textContent = '✕';
+    // Fix #6: accessible label for screen readers
+    del.setAttribute('aria-label', `Supprimer ${preset.nom}`);
     del.addEventListener('click', () => this._delete(preset.id, row));
 
     row.appendChild(name);
@@ -76,10 +88,15 @@ export class PresetPanel {
       await deletePreset(id);
     } catch (e) {
       console.error('deletePreset failed:', e);
+      // Fix #1: restore list from server when delete fails
+      this._loadList();
     }
   }
 
   _openPopup() {
+    // Fix #2: prevent stacking multiple popups
+    if (document.getElementById('preset-popup-overlay')) return;
+
     const overlay = document.createElement('div');
     overlay.id = 'preset-popup-overlay';
 
@@ -109,7 +126,8 @@ export class PresetPanel {
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 
-    setTimeout(() => input.focus(), 0);
+    // Fix #7: input is already in the DOM, no need for setTimeout
+    input.focus();
 
     const close = () => overlay.remove();
 
