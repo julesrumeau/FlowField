@@ -45,6 +45,8 @@ export class ParticleSystem {
     }
   }
 
+  get count() { return this._count; }
+
   update(dt, time) {
     const b = this._bounds;
     const t = this._turbulence;
