@@ -35,11 +35,11 @@ export class PresetPanel {
   }
 
   async _loadList() {
+    this._errorMsg.textContent = '';
     try {
       const presets = await listPresets();
       this._renderList(presets);
     } catch {
-      // Fix #5: use _errorMsg instead of overwriting _list content
       this._errorMsg.textContent = 'Erreur chargement';
     }
   }
@@ -86,9 +86,9 @@ export class PresetPanel {
     row.remove();
     try {
       await deletePreset(id);
+      this._loadList();
     } catch (e) {
       console.error('deletePreset failed:', e);
-      // Fix #1: restore list from server when delete fails
       this._loadList();
     }
   }
