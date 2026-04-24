@@ -3,6 +3,7 @@ import { ParticleSystem } from './simulation/ParticleSystem.js';
 import { ParticleMesh }   from './renderer/ParticleMesh.js';
 import { Renderer }       from './renderer/Renderer.js';
 import { Controls }       from './ui/Controls.js';
+import { PresetPanel }    from './ui/PresetPanel.js';
 
 const canvas = document.getElementById('canvas');
 
@@ -12,13 +13,16 @@ const speed          = 0.8;
 const turbulence     = 0.3;
 const particleCount  = 80000;
 const bounds         = 50;
+const trailLength    = 0.95;
+const bloomStrength  = 1.0;
 
 const flowField      = new FlowField({ noiseScale, seed });
 const particleSystem = new ParticleSystem({ particleCount, flowField, speed, turbulence, bounds });
 const particleMesh   = new ParticleMesh(particleSystem.positions);
-const renderer       = new Renderer({ canvas, particleSystem, particleMesh });
+const renderer       = new Renderer({ canvas, particleSystem, particleMesh, trailLength, bloomStrength });
 
 renderer.init();
 renderer.start();
 
-new Controls({ particleSystem, particleMesh, flowField });
+const controls = new Controls({ particleSystem, particleMesh, flowField, renderer });
+new PresetPanel({ controls });
