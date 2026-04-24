@@ -186,13 +186,7 @@
 </head>
 <body>
   <canvas id="canvas"></canvas>
-
-  <div id="overlay">
-    <h1>FlowField</h1>
-    <p>Simulation de champ vectoriel génératif</p>
-    <p id="health">API : … — DB : …</p>
-  </div>
-
+  <script src="https://mrdoob.github.io/stats.js/build/stats.min.js"></script>
   <script type="module" src="./main.js"></script>
   <script type="module">
     fetch('/api/health')
