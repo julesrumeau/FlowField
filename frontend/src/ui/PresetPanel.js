@@ -1,4 +1,4 @@
-import { listPresets, savePreset, deletePreset } from '../api/client.js';
+import { listPresets, savePreset, deletePreset } from '../services/client.js';
 
 export class PresetPanel {
   constructor({ controls }) {
