@@ -40,12 +40,17 @@ export class Renderer {
     window.addEventListener('resize', () => this._onResize());
   }
 
-  _onResize() {
-    const w = window.innerWidth, h = window.innerHeight;
+  get canvas() { return this._canvas; }
+
+  resize(w, h) {
     this._camera.aspect = w / h;
     this._camera.updateProjectionMatrix();
     this._renderer.setSize(w, h);
     this._post.resize(w, h);
+  }
+
+  _onResize() {
+    this.resize(window.innerWidth, window.innerHeight);
   }
 
   start() {
