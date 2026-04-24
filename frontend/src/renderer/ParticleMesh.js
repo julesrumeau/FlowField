@@ -27,6 +27,7 @@ export class ParticleMesh {
       color: 0xffffff,
       transparent: true,
       depthWrite: false,
+      depthTest: false,
       map: makeCircleTexture(),
       alphaTest: 0.01,
     });

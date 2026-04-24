@@ -1,12 +1,15 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { PostProcessing } from './PostProcessing.js';
 
 export class Renderer {
-  constructor({ canvas, particleSystem, particleMesh }) {
-    this._canvas = canvas;
+  constructor({ canvas, particleSystem, particleMesh, trailLength = 0.95, bloomStrength = 1.0 }) {
+    this._canvas         = canvas;
     this._particleSystem = particleSystem;
-    this._particleMesh = particleMesh;
-    this._time = 0;
+    this._particleMesh   = particleMesh;
+    this._trailLength    = trailLength;
+    this._bloomStrength  = bloomStrength;
+    this._time   = 0;
     this._lastTs = null;
   }
 
@@ -24,13 +27,23 @@ export class Renderer {
     this._controls = new OrbitControls(this._camera, this._canvas);
     this._controls.enableDamping = true;
 
+    this._post = new PostProcessing({
+      renderer:      this._renderer,
+      scene:         this._scene,
+      camera:        this._camera,
+      trailLength:   this._trailLength,
+      bloomStrength: this._bloomStrength,
+    });
+
     window.addEventListener('resize', () => this._onResize());
   }
 
   _onResize() {
-    this._camera.aspect = window.innerWidth / window.innerHeight;
+    const w = window.innerWidth, h = window.innerHeight;
+    this._camera.aspect = w / h;
     this._camera.updateProjectionMatrix();
-    this._renderer.setSize(window.innerWidth, window.innerHeight);
+    this._renderer.setSize(w, h);
+    this._post.resize(w, h);
   }
 
   start() {
@@ -49,6 +62,9 @@ export class Renderer {
     this._particleSystem.update(dt, time);
     this._particleMesh.sync();
     this._controls.update();
-    this._renderer.render(this._scene, this._camera);
+    this._post.render();
   }
+
+  setTrailLength(v)   { this._post.setTrailLength(v); }
+  setBloomStrength(v) { this._post.setBloomStrength(v); }
 }
