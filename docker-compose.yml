@@ -16,6 +16,11 @@ services:
       db:
         condition: service_healthy
 
+  export:
+    build: ./export
+    ports:
+      - "8001:8001"
+
   db:
     image: postgres:16-alpine
     environment:

@@ -125,6 +125,39 @@
       font-size: 10px;
       min-height: 14px;
     }
+    #export-panel {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      z-index: 10;
+    }
+    #btn-export {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.6);
+      font-family: monospace;
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+    #btn-export:hover:not(:disabled) {
+      border-color: rgba(255,255,255,0.5);
+      color: rgba(255,255,255,0.9);
+    }
+    #btn-export:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    #export-msg {
+      color: rgba(255,80,80,0.8);
+      font-family: monospace;
+      font-size: 10px;
+      min-height: 14px;
+    }
     #preset-popup-overlay {
       position: fixed;
       inset: 0;
@@ -187,6 +220,10 @@
 <body>
   <canvas id="canvas"></canvas>
   <script src="https://mrdoob.github.io/stats.js/build/stats.min.js"></script>
+  <div id="export-panel">
+    <button id="btn-export">Export MP4</button>
+    <span id="export-msg"></span>
+  </div>
   <script type="module" src="./main.js"></script>
   <script type="module">
     fetch('/api/health')

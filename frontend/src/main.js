@@ -4,6 +4,7 @@ import { ParticleMesh }   from './renderer/ParticleMesh.js';
 import { Renderer }       from './renderer/Renderer.js';
 import { Controls }       from './ui/Controls.js';
 import { PresetPanel }    from './ui/PresetPanel.js';
+import { VideoExporter }  from './export/VideoExporter.js';
 
 const canvas = document.getElementById('canvas');
 
@@ -37,3 +38,6 @@ renderer.start();
 
 const controls = new Controls({ particleSystem, particleMesh, flowField, renderer });
 new PresetPanel({ controls });
+
+const exporter = new VideoExporter({ renderer });
+document.getElementById('btn-export').addEventListener('click', () => exporter.export());
