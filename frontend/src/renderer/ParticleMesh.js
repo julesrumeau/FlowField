@@ -1,85 +1,86 @@
 import * as THREE from 'three';
+import { TEXTURE_WIDTH, TEXTURE_HEIGHT } from '../simulation/ParticleSystem.js';
 
-function makeCircleTexture() {
-  const size = 64;
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  const r = size / 2;
-  const g = ctx.createRadialGradient(r, r, 0, r, r, r);
-  g.addColorStop(0.0, 'rgba(255,255,255,1.0)');
-  g.addColorStop(0.4, 'rgba(255,255,255,0.9)');
-  g.addColorStop(1.0, 'rgba(255,255,255,0.0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(canvas);
-}
+const MAX_COUNT = TEXTURE_WIDTH * TEXTURE_HEIGHT;
 
-function smoothstep(edge0, edge1, x) {
-  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
-}
+const VERTEX_SHADER = `
+  attribute float aIndex;
+  uniform sampler2D texturePosition;
+  uniform float u_size;
+  uniform float u_count;
+  uniform float u_bounds;
 
-export class ParticleMesh {
-  constructor(positions) {
-    const maxCount = positions.length / 3;
-    this._colors = new Float32Array(maxCount * 3);
+  varying float vAlpha;
 
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(this._colors, 3));
-
-    const material = new THREE.PointsMaterial({
-      size: 1.5,
-      sizeAttenuation: true,
-      blending: THREE.AdditiveBlending,
-      vertexColors: true,
-      transparent: true,
-      depthWrite: false,
-      depthTest: false,
-      map: makeCircleTexture(),
-      alphaTest: 0.01,
-    });
-
-    this.mesh = new THREE.Points(geometry, material);
-    this._geometry = geometry;
-    this._material = material;
-  }
-
-  setDrawCount(n) {
-    this._geometry.setDrawRange(0, n);
-  }
-
-  setSize(n) {
-    this._material.size = n;
-  }
-
-  sync(positions, count, bounds) {
-    const colors = this._colors;
-    const fadeStart = bounds * 0.4;
-
-    for (let i = 0; i < count; i++) {
-      const x = positions[i * 3];
-      const y = positions[i * 3 + 1];
-      const z = positions[i * 3 + 2];
-      const dist = Math.sqrt(x * x + y * y + z * z);
-
-      const noise =
-        (Math.sin(x * 0.11) +
-        Math.sin(y * 0.13) +
-        Math.sin(z * 0.17)) * 0.2;
-
-      const d = dist + noise * bounds * 0.15;
-
-      const t = smoothstep(fadeStart, bounds, d);
-      const f = 1 - t * t;
-
-      colors[i * 3]     = f;
-      colors[i * 3 + 1] = f;
-      colors[i * 3 + 2] = f;
+  void main() {
+    if (aIndex >= u_count) {
+      gl_Position  = vec4(0.0, 0.0, 9999.0, 1.0);
+      gl_PointSize = 0.0;
+      vAlpha = 0.0;
+      return;
     }
 
-    this._geometry.attributes.color.needsUpdate    = true;
-    this._geometry.attributes.position.needsUpdate = true;
+    float col = mod(aIndex, ${TEXTURE_WIDTH}.0);
+    float row = floor(aIndex / ${TEXTURE_WIDTH}.0);
+    vec2 uv   = (vec2(col, row) + 0.5) / vec2(${TEXTURE_WIDTH}.0, ${TEXTURE_HEIGHT}.0);
+    vec3 pos  = texture2D(texturePosition, uv).xyz;
+
+    // Radial alpha fade — same formula as the former CPU sync()
+    float dist      = length(pos);
+    float noiseFade = (sin(pos.x * 0.11) + sin(pos.y * 0.13) + sin(pos.z * 0.17)) * 0.2;
+    float d         = dist + noiseFade * u_bounds * 0.15;
+    float fadeStart = u_bounds * 0.4;
+    float t         = smoothstep(fadeStart, u_bounds, d);
+    vAlpha          = 1.0 - t * t;
+
+    vec4 mvPosition  = modelViewMatrix * vec4(pos, 1.0);
+    gl_PointSize     = u_size * (300.0 / -mvPosition.z);
+    gl_Position      = projectionMatrix * mvPosition;
   }
+`;
+
+const FRAGMENT_SHADER = `
+  varying float vAlpha;
+
+  void main() {
+    // Circular radial gradient matching the former CanvasTexture
+    vec2  uv = gl_PointCoord - vec2(0.5);
+    float r  = length(uv) * 2.0;
+    float a1 = mix(1.0, 0.9, smoothstep(0.0, 0.8, r));
+    float a2 = mix(0.9, 0.0, smoothstep(0.8, 1.0, r));
+    float circleAlpha = r < 0.8 ? a1 : a2;
+    if (circleAlpha < 0.01) discard;
+    gl_FragColor = vec4(1.0, 1.0, 1.0, circleAlpha * vAlpha);
+  }
+`;
+
+export class ParticleMesh {
+  constructor({ bounds = 50 } = {}) {
+    const indices = new Float32Array(MAX_COUNT);
+    for (let i = 0; i < MAX_COUNT; i++) indices[i] = i;
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('aIndex', new THREE.BufferAttribute(indices, 1));
+
+    this._material = new THREE.ShaderMaterial({
+      uniforms: {
+        texturePosition: { value: null },
+        u_size:          { value: 1.5 },
+        u_count:         { value: MAX_COUNT },
+        u_bounds:        { value: bounds },
+      },
+      vertexShader:   VERTEX_SHADER,
+      fragmentShader: FRAGMENT_SHADER,
+      blending:       THREE.AdditiveBlending,
+      depthWrite:     false,
+      depthTest:      false,
+      transparent:    true,
+    });
+
+    this.mesh = new THREE.Points(geometry, this._material);
+  }
+
+  setPositionTexture(tex) { this._material.uniforms.texturePosition.value = tex; }
+  setSize(n)              { this._material.uniforms.u_size.value  = n; }
+  setCount(n)             { this._material.uniforms.u_count.value = n; }
 }
