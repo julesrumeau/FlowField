@@ -6,7 +6,8 @@ const EXPORT_FPS      = 60;
 
 export class VideoExporter {
   constructor({ renderer }) {
-    this._renderer = renderer;
+    this._renderer    = renderer;
+    this._errorTimeout = null;
   }
 
   async export() {
@@ -14,6 +15,8 @@ export class VideoExporter {
     const msg   = document.getElementById('export-msg');
     const origW = window.innerWidth;
     const origH = window.innerHeight;
+
+    if (this._errorTimeout) { clearTimeout(this._errorTimeout); this._errorTimeout = null; }
 
     try {
       this._renderer.resize(EXPORT_WIDTH, EXPORT_HEIGHT);
