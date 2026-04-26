@@ -82,5 +82,6 @@ export class PostProcessing {
     const dpr = this._renderer.getPixelRatio();
     this._trailTarget.setSize(w * dpr, h * dpr);
     this._composer.setSize(w, h);
+    this._initialized = false;
   }
 }
