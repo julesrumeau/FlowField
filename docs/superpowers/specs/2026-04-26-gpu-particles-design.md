@@ -58,10 +58,12 @@ Le bruit actuel est le **Perlin noise amélioré de Ken Perlin (2002)**, seeded 
 Les 3 champs indépendants **doivent** utiliser les mêmes constantes que le JS actuel :
 
 ```glsl
-float vx = noise3D(pos*s + o,           pos*s + o,           pos*s + time*0.031 + o      );
-float vy = noise3D(pos*s + o + 100.0,   pos*s + o + 100.0,   pos*s + time*0.050 + o+100.0);
-float vz = noise3D(pos*s + o + 200.0,   pos*s + o + 200.0,   pos*s + time*0.041 + o+200.0);
+float vx = noise3D(pos.x*s + o,          pos.y*s + o,          pos.z*s + t*0.031 + o        );
+float vy = noise3D(pos.x*s + o + 100.0,  pos.y*s + o + 100.0,  pos.z*s + t*0.050 + o + 100.0);
+float vz = noise3D(pos.x*s + o + 200.0,  pos.y*s + o + 200.0,  pos.z*s + t*0.041 + o + 200.0);
 ```
+
+> `noise3D(x, y, z)` prend trois scalaires séparés — **pas un vecteur**. L'écriture `pos*s` serait une multiplication vec3, ce qui est faux ici.
 
 Normalisation avec guard longueur zéro :
 ```glsl
@@ -129,6 +131,7 @@ if (pos.z < -u_bounds) pos.z =  u_bounds;
 | `texturePosition` | sampler2D | `gpuCompute.getCurrentRenderTarget(posVar).texture` |
 | `u_size` | float | slider size |
 | `u_count` | float | particleCount actif |
+| `u_bounds` | float | bounds (fixe = 50) — utilisé par la formule de fade radial |
 
 ---
 
@@ -202,6 +205,139 @@ const permTex = new THREE.DataTexture(data, 16, 32, THREE.RGBAFormat, THREE.Unsi
 - `trailLength`, `bloomStrength` → inchangés (passent par `renderer`)
 
 L'interface publique de `ParticleSystem` et `ParticleMesh` reste la même du point de vue de `Controls.js`.
+
+---
+
+## Fade radial alpha — migration CPU → vertex shader
+
+Le CPU actuel calcule le fade dans `ParticleMesh.sync()` et l'écrit dans le buffer `color` (Float32Array) chaque frame. Dans la version GPU, **aucun CPU-side buffer `color` n'existe plus** — le fade est calculé entièrement dans le vertex shader via `vAlpha` (varying → fragment shader).
+
+**Formule — identique à `sync()`** :
+
+```glsl
+float dist      = length(pos);
+float noiseFade = (sin(pos.x * 0.11) + sin(pos.y * 0.13) + sin(pos.z * 0.17)) * 0.2;
+float d         = dist + noiseFade * u_bounds * 0.15;
+float fadeStart = u_bounds * 0.4;
+float t         = smoothstep(fadeStart, u_bounds, d);
+vAlpha          = 1.0 - t * t;
+```
+
+**Fragment shader** — remplace la `CanvasTexture` radiale et applique `vAlpha` :
+
+```glsl
+vec2  uv = gl_PointCoord - vec2(0.5);
+float r  = length(uv) * 2.0;
+float a1 = mix(1.0, 0.9, smoothstep(0.0, 0.8, r));
+float a2 = mix(0.9, 0.0, smoothstep(0.8, 1.0, r));
+float circleAlpha = r < 0.8 ? a1 : a2;
+if (circleAlpha < 0.01) discard;
+gl_FragColor = vec4(1.0, 1.0, 1.0, circleAlpha * vAlpha);
+```
+
+La `CanvasTexture` CPU (64×64 canvas) et le buffer `color` sont supprimés — tout passe par le shader.
+
+---
+
+## Culling des particules inactives — vertex shader vs setDrawRange
+
+Le CPU actuel utilise `geometry.setDrawRange(0, count)` pour ne dessiner que les particules actives. Dans la version GPU, `setDrawRange` **est supprimé** : les 512×512 = 262 144 slots sont toujours soumis au vertex shader.
+
+**Pourquoi :** les slots inactifs évoluent dans les compute shaders (SIMD-friendly, sans branchement). Les pousser derrière le far plane dans le vertex shader est gratuit. `setDrawRange` en revanche forcerait un rebind de la géométrie chaque fois que le count change.
+
+**Culling dans le vertex shader** :
+
+```glsl
+if (aIndex >= u_count) {
+  gl_Position  = vec4(0.0, 0.0, 9999.0, 1.0); // derrière le far plane
+  gl_PointSize = 0.0;
+  vAlpha       = 0.0;
+  return;
+}
+```
+
+`u_count` est mis à jour via `particleMesh.setCount(n)` depuis `Controls.js` quand le slider change (identique à l'ancien `setDrawCount`).
+
+---
+
+## Changements Renderer.js
+
+La seule modification substantielle est dans `tick()`. Le `bounds` n'est plus passé au constructeur (le vertex shader le porte en uniform), et le `threeRenderer` getter est ajouté.
+
+**Avant (`tick()` CPU) :**
+
+```js
+tick(dt, time) {
+  this._particleSystem.update(dt, time);
+  this._particleMesh.sync(this._particleSystem.positions, this._particleSystem.count, this._bounds);
+  this._controls.update();
+  this._post.render();
+}
+```
+
+**Après (`tick()` GPU) :**
+
+```js
+tick(dt, time) {
+  this._particleSystem.update(dt, time);
+  this._particleMesh.setPositionTexture(this._particleSystem.getPositionTexture());
+  this._controls.update();
+  this._post.render();
+}
+```
+
+`setPositionTexture()` met à jour l'uniform `texturePosition` du ShaderMaterial — aucun transfert CPU↔GPU, juste une référence à la texture déjà sur le GPU.
+
+**Getter ajouté :**
+
+```js
+get threeRenderer() { return this._renderer; }
+```
+
+Requis pour passer le `WebGLRenderer` à `GPUComputationRenderer` dans `ParticleSystem.init()`.
+
+**Resize :** aucun changement — le GPUComputationRenderer est fixé à 512×512 et ne dépend pas de la taille de la fenêtre. L'appel `this._post.resize(w, h)` est conservé tel quel.
+
+---
+
+## Changements main.js — ordre d'initialisation
+
+**Contrainte absolue :** `particleSystem.init(threeRenderer)` doit être appelé **après** `renderer.init()` — le `THREE.WebGLRenderer` n'existe qu'après `renderer.init()`.
+
+```js
+renderer.init();
+particleSystem.init(renderer.threeRenderer); // GPUComputationRenderer crée ici
+renderer.start();
+```
+
+Appeler `particleSystem.init()` avant `renderer.init()` produit une erreur : `renderer.threeRenderer` est `undefined`.
+
+**Différences avec le main.js CPU :**
+
+| CPU | GPU |
+|---|---|
+| `new FlowField({ noiseScale, seed })` | supprimé |
+| `new ParticleSystem({ ..., flowField })` | `new ParticleSystem({ ..., noiseScale, seed })` (pas de flowField) |
+| `new ParticleMesh(particleSystem.positions)` | `new ParticleMesh({ bounds })` (pas de Float32Array positions) |
+| `renderer.init(); renderer.start()` | `renderer.init(); particleSystem.init(renderer.threeRenderer); renderer.start()` |
+| `new Controls({ ..., flowField })` | `new Controls({ ... })` (pas de flowField) |
+
+`VideoExporter` et `PresetPanel` sont inchangés — `VideoExporter` utilise `renderer.canvas` qui existe toujours.
+
+---
+
+## Prérequis WebGL2
+
+`GPUComputationRenderer` requiert **WebGL2** pour les textures flottantes `RGBA32F`. `THREE.WebGLRenderer` crée un contexte WebGL2 par défaut depuis Three.js r118+ — aucune configuration supplémentaire n'est nécessaire.
+
+En cas d'échec d'initialisation, `gpuCompute.init()` retourne une string d'erreur (non-null) :
+
+```js
+const err = this._gpuCompute.init();
+if (err !== null) console.error('GPUComputationRenderer init error:', err);
+```
+
+Navigateurs cibles : tous les navigateurs modernes (Chrome, Firefox, Safari 15+, Edge) supportent WebGL2 RGBA32F.
 
 ---
 

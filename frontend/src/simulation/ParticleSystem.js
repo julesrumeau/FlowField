@@ -3,7 +3,7 @@ import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer
 import { velocityShader } from './shaders/velocityShader.js';
 import { positionShader } from './shaders/positionShader.js';
 
-export const TEXTURE_WIDTH  = 512;
+export const TEXTURE_WIDTH  = 1024;
 export const TEXTURE_HEIGHT = 512;
 const MAX_COUNT = TEXTURE_WIDTH * TEXTURE_HEIGHT;
 

@@ -61,6 +61,7 @@ export class ParticleMesh {
 
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('aIndex', new THREE.BufferAttribute(indices, 1));
+    geometry.setDrawRange(0, MAX_COUNT);
 
     this._material = new THREE.ShaderMaterial({
       uniforms: {
@@ -78,6 +79,7 @@ export class ParticleMesh {
     });
 
     this.mesh = new THREE.Points(geometry, this._material);
+    this.mesh.frustumCulled = false;
   }
 
   setPositionTexture(tex) { this._material.uniforms.texturePosition.value = tex; }

@@ -135,6 +135,15 @@
       gap: 6px;
       z-index: 10;
     }
+    #health-panel {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+    }
     #btn-export {
       background: none;
       border: 1px solid rgba(255,255,255,0.2);
@@ -223,6 +232,9 @@
   <div id="export-panel">
     <button id="btn-export">Export MP4</button>
     <span id="export-msg"></span>
+  </div>
+  <div id="health-panel">
+    <span id="health"></span>
   </div>
   <script type="module" src="./main.js"></script>
   <script type="module">
