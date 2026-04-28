@@ -1,8 +1,7 @@
 export class Controls {
-  constructor({ particleSystem, particleMesh, flowField, renderer }) {
+  constructor({ particleSystem, particleMesh, renderer }) {
     this._ps       = particleSystem;
     this._pm       = particleMesh;
-    this._ff       = flowField;
     this._renderer = renderer;
     this._inputs   = {};
     document.body.appendChild(this._build());
@@ -61,10 +60,10 @@ export class Controls {
 
   _apply(key, value) {
     if (key === 'noiseScale') {
-      this._ff.noiseScale = value;
+      this._ps.setParams({ noiseScale: value });
     } else if (key === 'particleCount') {
       this._ps.setCount(value);
-      this._pm.setDrawCount(value);
+      this._pm.setCount(value);
     } else if (key === 'size') {
       this._pm.setSize(value);
     } else if (key === 'trailLength') {
