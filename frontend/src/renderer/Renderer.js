@@ -15,7 +15,8 @@ export class Renderer {
   }
 
   init() {
-    this._renderer = new THREE.WebGLRenderer({ canvas: this._canvas, antialias: false });
+    this._paused   = false;
+    this._renderer = new THREE.WebGLRenderer({ canvas: this._canvas, antialias: false, preserveDrawingBuffer: true });
     this._renderer.setPixelRatio(window.devicePixelRatio);
     this._renderer.setSize(window.innerWidth, window.innerHeight);
 
@@ -51,9 +52,15 @@ export class Renderer {
 
   _onResize() { this.resize(window.innerWidth, window.innerHeight); }
 
+  get currentTime() { return this._time; }
+
+  pause()  { this._paused = true; }
+  resume() { this._paused = false; this._lastTs = null; requestAnimationFrame(ts => this._loop(ts)); }
+
   start() { requestAnimationFrame(ts => this._loop(ts)); }
 
   _loop(ts) {
+    if (this._paused) return;
     requestAnimationFrame(ts2 => this._loop(ts2));
     const dt = this._lastTs === null ? 0.016 : Math.min((ts - this._lastTs) / 1000, 0.05);
     this._lastTs = ts;

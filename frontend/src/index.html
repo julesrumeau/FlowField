@@ -167,6 +167,34 @@
       font-size: 10px;
       min-height: 14px;
     }
+    #export-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 200;
+    }
+    #export-overlay-label {
+      color: rgba(255,255,255,0.85);
+      font-family: monospace;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+    }
+    #export-overlay-bar-track {
+      width: 220px;
+      height: 2px;
+      background: rgba(255,255,255,0.12);
+    }
+    #export-overlay-bar-fill {
+      height: 2px;
+      width: 0%;
+      background: rgba(255,255,255,0.6);
+      transition: width 0.1s linear;
+    }
     #preset-popup-overlay {
       position: fixed;
       inset: 0;
@@ -228,6 +256,10 @@
 </head>
 <body>
   <canvas id="canvas"></canvas>
+  <div id="export-overlay">
+    <span id="export-overlay-label">Capture 0%</span>
+    <div id="export-overlay-bar-track"><div id="export-overlay-bar-fill"></div></div>
+  </div>
   <script src="https://mrdoob.github.io/stats.js/build/stats.min.js"></script>
   <div id="export-panel">
     <button id="btn-export">Export MP4</button>
