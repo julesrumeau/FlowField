@@ -32,4 +32,5 @@ const controls = new Controls({ particleSystem, particleMesh, renderer });
 new PresetPanel({ controls });
 
 const exporter = new VideoExporter({ renderer });
-document.getElementById('btn-export').addEventListener('click', () => exporter.export());
+document.getElementById('btn-record-start').addEventListener('click', () => exporter.startRecording());
+document.getElementById('btn-record-stop').addEventListener('click',  () => exporter.stopRecording());
