@@ -1,0 +1,22 @@
+services:
+  frontend:
+    image: dvp-srv-gitlab.campus12avenue.fr:5050/tp-devops-2526/s04/flowfield/frontend:latest
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    image: dvp-srv-gitlab.campus12avenue.fr:5050/tp-devops-2526/s04/flowfield/backend:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://flowfield:${DB_PASSWORD}@${DB_HOST}:5432/flowfield
+    restart: unless-stopped
+
+  export:
+    image: dvp-srv-gitlab.campus12avenue.fr:5050/tp-devops-2526/s04/flowfield/export:latest
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
