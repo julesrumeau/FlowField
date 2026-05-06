@@ -41,9 +41,11 @@ package_frontend:
   stage: package
   image: docker:27
   services:
-    - docker:27-dind
+    - name: docker:27-dind
+      command: ["--insecure-registry=dvp-srv-gitlab.campus12avenue.fr:5050"]
   variables:
     DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   script:
