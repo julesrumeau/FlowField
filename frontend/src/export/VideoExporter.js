@@ -13,6 +13,20 @@ export class VideoExporter {
     this._recorder  = null;
     this._chunks    = [];
     this._startTime = 0;
+    this._savedDpr  = null;
+  }
+
+  _reduceDpr() {
+    this._savedDpr = this._renderer.threeRenderer.getPixelRatio();
+    this._renderer.threeRenderer.setPixelRatio(1);
+    this._renderer.resize(window.innerWidth, window.innerHeight);
+  }
+
+  _restoreDpr() {
+    if (this._savedDpr === null) return;
+    this._renderer.threeRenderer.setPixelRatio(this._savedDpr);
+    this._renderer.resize(window.innerWidth, window.innerHeight);
+    this._savedDpr = null;
   }
 
   startRecording() {
@@ -30,6 +44,11 @@ export class VideoExporter {
 
     this._chunks    = [];
     this._startTime = Date.now();
+
+    // DPR→1 : divise par 4 le nombre de pixels dans le trail buffer et les passes bloom
+    // (sur écran retina DPR=2). Réduit la contention mémoire GPU avec l'encodeur vidéo.
+    // La vidéo capturée est en 1920×1080 natif, ce qui est le bon compromis qualité/perf.
+    this._reduceDpr();
 
     // captureStream(0) = mode manuel : Chrome ne copie rien automatiquement au compositor.
     // On soumet chaque frame via requestFrame() dans notre propre RAF, ce qui supprime la
@@ -74,6 +93,8 @@ export class VideoExporter {
   async _onStop(mimeType, btnStart, btnStop, rec, msg) {
     rec.style.display = 'none';
     btnStop.disabled  = true;
+    // Restauration immédiate : le renderer revient en qualité pleine pendant que l'upload se fait.
+    this._restoreDpr();
 
     const duration = Date.now() - this._startTime;
     if (duration < 1000) {
