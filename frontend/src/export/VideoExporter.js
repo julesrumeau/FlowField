@@ -31,7 +31,12 @@ export class VideoExporter {
     this._chunks    = [];
     this._startTime = Date.now();
 
-    const stream = this._renderer.canvas.captureStream(60);
+    // captureStream(0) = mode manuel : Chrome ne copie rien automatiquement au compositor.
+    // On soumet chaque frame via requestFrame() dans notre propre RAF, ce qui supprime la
+    // synchronisation implicite compositor↔GPU qui causait la chute 60→30fps.
+    const stream = this._renderer.canvas.captureStream(0);
+    this._track = stream.getVideoTracks()[0];
+
     this._recorder = new MediaRecorder(stream, {
       mimeType,
       videoBitsPerSecond: BITRATE,
@@ -47,12 +52,23 @@ export class VideoExporter {
     btnStart.disabled = true;
     btnStop.disabled  = false;
     rec.style.display = 'inline';
+
+    // RAF dédié à la soumission de frames : tourne en parallèle du RAF du renderer,
+    // s'arrête dès que le recorder devient inactif.
+    const submitFrame = () => {
+      if (this._recorder?.state === 'recording') {
+        this._track.requestFrame();
+        requestAnimationFrame(submitFrame);
+      }
+    };
+    requestAnimationFrame(submitFrame);
   }
 
   stopRecording() {
     if (this._recorder && this._recorder.state !== 'inactive') {
       this._recorder.stop();
     }
+    this._track = null;
   }
 
   async _onStop(mimeType, btnStart, btnStop, rec, msg) {
