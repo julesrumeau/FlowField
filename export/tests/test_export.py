@@ -7,27 +7,83 @@ from src.main import app
 
 client = TestClient(app)
 
-FAKE_FRAME = ("frames", ("frame_0000.jpg", b"fake jpeg data", "image/jpeg"))
 
-
-def test_export_no_frames_returns_422():
-    response = client.post("/export", data={"fps": "60"})
+def test_empty_body_returns_422():
+    response = client.post(
+        "/export",
+        content=b"",
+        headers={"content-type": "video/webm"},
+    )
     assert response.status_code == 422
+    assert response.json()["detail"] == "No video data provided"
 
 
-def test_export_ffmpeg_error_returns_422():
+def test_avc1_codec_uses_copy():
+    fake_mp4 = b"fake mp4 bytes"
+
+    def fake_ffmpeg(cmd, **kwargs):
+        Path(cmd[-1]).write_bytes(fake_mp4)
+        result = MagicMock()
+        result.returncode = 0
+        result.stderr = ""
+        return result
+
+    with patch("src.main.subprocess.run", side_effect=fake_ffmpeg) as mock_run:
+        response = client.post(
+            "/export",
+            content=b"fake webm data",
+            headers={"content-type": "video/webm;codecs=avc1"},
+        )
+
+    assert response.status_code == 200
+    cmd = mock_run.call_args[0][0]
+    assert "-c" in cmd
+    idx = cmd.index("-c")
+    assert cmd[idx + 1] == "copy"
+    assert "libx264" not in cmd
+
+
+def test_vp9_codec_uses_libx264():
+    fake_mp4 = b"fake mp4 bytes"
+
+    def fake_ffmpeg(cmd, **kwargs):
+        Path(cmd[-1]).write_bytes(fake_mp4)
+        result = MagicMock()
+        result.returncode = 0
+        result.stderr = ""
+        return result
+
+    with patch("src.main.subprocess.run", side_effect=fake_ffmpeg) as mock_run:
+        response = client.post(
+            "/export",
+            content=b"fake webm data",
+            headers={"content-type": "video/webm;codecs=vp9"},
+        )
+
+    assert response.status_code == 200
+    cmd = mock_run.call_args[0][0]
+    assert "-c:v" in cmd
+    idx = cmd.index("-c:v")
+    assert cmd[idx + 1] == "libx264"
+
+
+def test_ffmpeg_error_returns_422():
     mock_result = MagicMock()
     mock_result.returncode = 1
-    mock_result.stderr = "FFmpeg error: invalid codec"
+    mock_result.stderr = "FFmpeg error: invalid input"
 
     with patch("src.main.subprocess.run", return_value=mock_result):
-        response = client.post("/export", data={"fps": "60"}, files=[FAKE_FRAME])
+        response = client.post(
+            "/export",
+            content=b"fake webm data",
+            headers={"content-type": "video/webm"},
+        )
 
     assert response.status_code == 422
     assert "FFmpeg error" in response.json()["detail"]
 
 
-def test_export_success_returns_mp4():
+def test_success_returns_mp4():
     fake_mp4 = b"fake mp4 bytes"
 
     def fake_ffmpeg(cmd, **kwargs):
@@ -40,11 +96,8 @@ def test_export_success_returns_mp4():
     with patch("src.main.subprocess.run", side_effect=fake_ffmpeg):
         response = client.post(
             "/export",
-            data={"fps": "60"},
-            files=[
-                ("frames", ("frame_0000.jpg", b"fake jpeg 0", "image/jpeg")),
-                ("frames", ("frame_0001.jpg", b"fake jpeg 1", "image/jpeg")),
-            ],
+            content=b"fake webm data",
+            headers={"content-type": "video/webm"},
         )
 
     assert response.status_code == 200
