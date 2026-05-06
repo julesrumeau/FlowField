@@ -1,0 +1,2 @@
+- import_playbook: playbooks/vm2.yml
+- import_playbook: playbooks/vm1.yml
