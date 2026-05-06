@@ -144,7 +144,7 @@
       font-size: 11px;
       color: rgba(255,255,255,0.35);
     }
-    #btn-export {
+    .export-btn {
       background: none;
       border: 1px solid rgba(255,255,255,0.2);
       color: rgba(255,255,255,0.6);
@@ -153,47 +153,34 @@
       padding: 4px 10px;
       cursor: pointer;
     }
-    #btn-export:hover:not(:disabled) {
+    .export-btn:hover:not(:disabled) {
       border-color: rgba(255,255,255,0.5);
       color: rgba(255,255,255,0.9);
     }
-    #btn-export:disabled {
+    .export-btn:disabled {
       opacity: 0.5;
       cursor: default;
+    }
+    .export-controls {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    #rec-indicator {
+      display: none;
+      color: rgba(255,60,60,0.9);
+      font-family: monospace;
+      font-size: 11px;
+      animation: blink 1s step-start infinite;
+    }
+    @keyframes blink {
+      50% { opacity: 0; }
     }
     #export-msg {
       color: rgba(255,80,80,0.8);
       font-family: monospace;
       font-size: 10px;
       min-height: 14px;
-    }
-    #export-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.88);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      z-index: 200;
-    }
-    #export-overlay-label {
-      color: rgba(255,255,255,0.85);
-      font-family: monospace;
-      font-size: 13px;
-      letter-spacing: 0.05em;
-    }
-    #export-overlay-bar-track {
-      width: 220px;
-      height: 2px;
-      background: rgba(255,255,255,0.12);
-    }
-    #export-overlay-bar-fill {
-      height: 2px;
-      width: 0%;
-      background: rgba(255,255,255,0.6);
-      transition: width 0.1s linear;
     }
     #preset-popup-overlay {
       position: fixed;
@@ -256,13 +243,13 @@
 </head>
 <body>
   <canvas id="canvas"></canvas>
-  <div id="export-overlay">
-    <span id="export-overlay-label">Capture 0%</span>
-    <div id="export-overlay-bar-track"><div id="export-overlay-bar-fill"></div></div>
-  </div>
   <script src="https://mrdoob.github.io/stats.js/build/stats.min.js"></script>
   <div id="export-panel">
-    <button id="btn-export">Export MP4</button>
+    <div class="export-controls">
+      <button id="btn-record-start" class="export-btn">Rec MP4</button>
+      <button id="btn-record-stop" class="export-btn" disabled>Stop</button>
+      <span id="rec-indicator">● REC</span>
+    </div>
     <span id="export-msg"></span>
   </div>
   <div id="health-panel">
