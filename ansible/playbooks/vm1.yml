@@ -75,7 +75,7 @@
 
     - name: Log in to GitLab registry
       community.docker.docker_login:
-        registry_url: "{{ registry_url }}"
+        registry_url: "172.16.21.16:5050"
         username: "oauth2"
         password: "{{ lookup('env', 'REGISTRY_API_TOKEN') }}"
 
