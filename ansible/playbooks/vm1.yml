@@ -68,19 +68,11 @@
         state: started
         enabled: true
 
-    - name: Configure Docker DNS
-      copy:
-        content: |
-          {
-            "dns": ["10.10.10.10"]
-          }
-        dest: /etc/docker/daemon.json
-        mode: "0644"
-
-    - name: Restart Docker to load config
-      service:
-        name: docker
-        state: restarted
+    - name: Add GitLab registry to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "172.16.21.16 dvp-srv-gitlab.campus12avenue.fr"
+        state: present
 
     - name: Log in to GitLab registry
       community.docker.docker_login:
