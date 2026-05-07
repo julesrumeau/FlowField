@@ -77,7 +77,7 @@
     - name: Log in to GitLab registry
       community.docker.docker_login:
         registry_url: "{{ registry_url }}"
-        username: "oauth2"
+        username: "flowfield-token"
         password: "{{ lookup('env', 'REGISTRY_API_TOKEN') }}"
 
     - name: Create app directory
