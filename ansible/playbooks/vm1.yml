@@ -4,7 +4,6 @@
   vars:
     app_dir: /opt/flowfield
     registry_url: dvp-srv-gitlab.campus12avenue.fr:5050
-    db_host: "10.10.30.40"
     db_password: "{{ lookup('env', 'DB_PASSWORD') }}"
 
   tasks:
@@ -38,12 +37,8 @@
         mode: "0644"
       notify: Restart Docker
 
-    - name: Flush handlers (Docker doit recharger le certificat avant docker login)
+    - name: Flush handlers
       meta: flush_handlers
-
-    - name: Gather package facts
-      package_facts:
-        manager: apt
 
     - name: Install Docker dependencies
       apt:
@@ -70,7 +65,6 @@
           - docker-ce-cli
           - docker-compose-plugin
         state: present
-      when: "'docker-ce' not in ansible_facts.packages"
 
     - name: Start and enable Docker
       service:
@@ -98,12 +92,11 @@
     - name: Write .env file
       copy:
         content: |
-          DB_HOST={{ db_host }}
           DB_PASSWORD={{ db_password }}
         dest: "{{ app_dir }}/.env"
         mode: "0600"
 
-    - name: Pull and deploy with Docker Compose
+    - name: Deploy with Docker Compose
       community.docker.docker_compose_v2:
         project_src: "{{ app_dir }}"
         pull: always
