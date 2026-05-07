@@ -68,6 +68,20 @@
         state: started
         enabled: true
 
+    - name: Configure Docker daemon
+      copy:
+        content: |
+          {
+            "insecure-registries": ["dvp-srv-gitlab.campus12avenue.fr:5050"]
+          }
+        dest: /etc/docker/daemon.json
+        mode: "0644"
+
+    - name: Restart Docker to load config
+      service:
+        name: docker
+        state: restarted
+
     - name: Add GitLab registry to /etc/hosts
       lineinfile:
         path: /etc/hosts
