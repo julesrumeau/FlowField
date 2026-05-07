@@ -95,6 +95,7 @@ package_export:
 deploy:
   stage: deploy
   script:
+    - cat ~/.ssh/known_hosts
     - ansible-playbook -u ansible -i ansible/inventories/hosts.yml ansible/playbook.yml
   environment:
     name: production
