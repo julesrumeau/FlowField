@@ -35,10 +35,6 @@
         owner: root
         group: root
         mode: "0644"
-      notify: Restart Docker
-
-    - name: Flush handlers
-      meta: flush_handlers
 
     - name: Install Docker dependencies
       apt:
@@ -50,12 +46,12 @@
 
     - name: Add Docker GPG key
       apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
+        url: https://download.docker.com/linux/debian/gpg
         state: present
 
     - name: Add Docker repository
       apt_repository:
-        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        repo: "deb [arch=amd64] https://download.docker.com/linux/debian {{ ansible_facts['distribution_release'] }} stable"
         state: present
 
     - name: Install Docker CE and Compose plugin
@@ -71,6 +67,11 @@
         name: docker
         state: started
         enabled: true
+
+    - name: Restart Docker to load certificate
+      service:
+        name: docker
+        state: restarted
 
     - name: Log in to GitLab registry
       community.docker.docker_login:
@@ -101,9 +102,3 @@
         project_src: "{{ app_dir }}"
         pull: always
         state: present
-
-  handlers:
-    - name: Restart Docker
-      service:
-        name: docker
-        state: restarted
