@@ -23,7 +23,7 @@
 
     - name: Retrieve GitLab registry certificate
       shell: |
-        echo | openssl s_client -connect dvp-srv-gitlab.campus12avenue.fr:5050 -showcerts 2>/dev/null \
+        echo | openssl s_client -connect 172.16.21.16:5050 -showcerts 2>/dev/null \
         | openssl x509 -outform PEM
       register: registry_cert
       changed_when: false
