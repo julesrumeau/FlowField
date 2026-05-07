@@ -68,14 +68,23 @@
         state: started
         enabled: true
 
-    - name: Restart Docker to load certificate
+    - name: Configure Docker DNS
+      copy:
+        content: |
+          {
+            "dns": ["10.10.10.10"]
+          }
+        dest: /etc/docker/daemon.json
+        mode: "0644"
+
+    - name: Restart Docker to load config
       service:
         name: docker
         state: restarted
 
     - name: Log in to GitLab registry
       community.docker.docker_login:
-        registry_url: "172.16.21.16:5050"
+        registry_url: "{{ registry_url }}"
         username: "oauth2"
         password: "{{ lookup('env', 'REGISTRY_API_TOKEN') }}"
 
