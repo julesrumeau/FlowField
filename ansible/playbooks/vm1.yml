@@ -72,7 +72,10 @@
       copy:
         content: |
           {
-            "insecure-registries": ["dvp-srv-gitlab.campus12avenue.fr:5050"]
+            "insecure-registries": [
+              "dvp-srv-gitlab.campus12avenue.fr:5050",
+              "dvp-srv-gitlab.campus12avenue.fr"
+            ]
           }
         dest: /etc/docker/daemon.json
         mode: "0644"
