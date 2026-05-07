@@ -85,7 +85,7 @@ package_export:
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   script:
-    - docker build -t $IMAGE_BASE/export:$CI_COMMIT_SHA -t $IMAGE_BASE/export:latest ./export
+    - docker build --network host -t $IMAGE_BASE/export:$CI_COMMIT_SHA -t $IMAGE_BASE/export:latest ./export
     - docker push "$IMAGE_BASE/export:$CI_COMMIT_SHA"
     - docker push "$IMAGE_BASE/export:latest"
   rules:
