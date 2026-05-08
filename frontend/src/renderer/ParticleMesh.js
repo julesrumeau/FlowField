@@ -25,7 +25,7 @@ const VERTEX_SHADER = `
     vec2 uv   = (vec2(col, row) + 0.5) / vec2(${TEXTURE_WIDTH}.0, ${TEXTURE_HEIGHT}.0);
     vec3 pos  = texture2D(texturePosition, uv).xyz;
 
-    // Radial alpha fade — same formula as the former CPU sync()
+    // Radial alpha fade: particles near the bounds dissolve progressively
     float dist      = length(pos);
     float noiseFade = (sin(pos.x * 0.11) + sin(pos.y * 0.13) + sin(pos.z * 0.17)) * 0.2;
     float d         = dist + noiseFade * u_bounds * 0.15;

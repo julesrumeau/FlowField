@@ -1,3 +1,4 @@
+import asyncio
 import shutil
 import subprocess
 import uuid
@@ -47,7 +48,7 @@ async def export_video(request: Request):
                 str(output_path),
             ]
 
-        result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+        result = await asyncio.to_thread(subprocess.run, ffmpeg_cmd, capture_output=True, text=True)
 
         if result.returncode != 0:
             shutil.rmtree(work_dir, ignore_errors=True)
