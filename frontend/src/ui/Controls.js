@@ -48,7 +48,7 @@ export class Controls {
 
     input.addEventListener('input', () => {
       const v = parseFloat(input.value);
-      val.textContent = v.toFixed(2);
+      val.textContent = key === 'particleCount' ? Math.round(v).toString() : v.toFixed(2);
       this._apply(key, v);
     });
 

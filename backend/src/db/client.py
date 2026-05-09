@@ -26,4 +26,6 @@ async def init_db():
 
 
 async def get_pool() -> asyncpg.Pool:
+    if pool is None:
+        raise RuntimeError("Database pool not initialised")
     return pool

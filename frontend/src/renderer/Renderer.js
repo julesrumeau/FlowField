@@ -64,7 +64,12 @@ export class Renderer {
     requestAnimationFrame(ts2 => this._loop(ts2));
     const dt = this._lastTs === null ? 0.016 : Math.min((ts - this._lastTs) / 1000, 0.05);
     this._lastTs = ts;
-    this.tick(dt, this._time);
+    try {
+      this.tick(dt, this._time);
+    } catch (err) {
+      console.error('Renderer tick error:', err);
+      return;
+    }
     this._time += dt;
   }
 
