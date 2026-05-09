@@ -33,6 +33,12 @@
 
 **Backend monolithique (presets + ffmpeg) :** rejeté. ffmpeg nécessite un binaire système (`apt install ffmpeg`) qui alourdit considérablement l'image Docker. Séparer les responsabilités permet des images minimales et des déploiements indépendants.
 
+## Déploiement
+
+**Base de données : PostgreSQL sur VM, hors cluster Kubernetes**
+
+PostgreSQL est déployé dans le `compose.yaml` comme service Docker sur la VM, aux côtés des autres conteneurs. Ce choix est délibéré : PostgreSQL repose sur un accès persistant au système de fichiers. Dans un cluster Kubernetes, cela nécessite des `PersistentVolumeClaims`, une `StorageClass` et une gestion du failover qui complexifient le déploiement pour un gain nul ici — l'application n'a pas besoin de haute disponibilité de la base. Maintenir PostgreSQL sur VM garantit la persistance des données sans dépendance à l'infrastructure de stockage du cluster. Pour la filière K8S, seuls les services sans état (`frontend`, `backend`, `export`) sont déployés dans le cluster ; la base de données reste sur la VM et est accessible via son IP.
+
 ## Compromis assumés
 
 - Le champ `seed` de la table `presets` est toujours `0` : les presets sauvegardent une configuration visuelle (sliders), pas un état de simulation exactement reproductible. Acceptable pour ce cas d'usage.
