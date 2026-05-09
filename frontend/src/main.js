@@ -22,13 +22,24 @@ if (stats) {
   document.body.appendChild(stats.dom);
 }
 
-const particleSystem = new ParticleSystem({ particleCount, speed, turbulence, noiseScale, bounds, seed });
-const particleMesh   = new ParticleMesh({ bounds });
-const renderer = new Renderer({ canvas, particleSystem, particleMesh, trailLength, bloomStrength, stats });
+let particleSystem, particleMesh, renderer;
 
-renderer.init();
-particleSystem.init(renderer.threeRenderer);
-renderer.start();
+try {
+  particleSystem = new ParticleSystem({ particleCount, speed, turbulence, noiseScale, bounds, seed });
+  particleMesh   = new ParticleMesh({ bounds });
+  renderer = new Renderer({ canvas, particleSystem, particleMesh, trailLength, bloomStrength, stats });
+
+  renderer.init();
+  particleSystem.init(renderer.threeRenderer);
+  renderer.start();
+} catch (err) {
+  console.error('FlowField init failed:', err);
+  document.body.insertAdjacentHTML('beforeend',
+    `<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0a0a0f;color:rgba(255,80,80,0.9);font-family:monospace;font-size:13px;z-index:999">
+      Erreur d'initialisation — WebGL non supporté ou GPU incompatible.<br>${err.message}
+    </div>`
+  );
+}
 
 const controls = new Controls({ particleSystem, particleMesh, renderer });
 new PresetPanel({ controls });
