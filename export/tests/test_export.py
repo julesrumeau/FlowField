@@ -103,3 +103,17 @@ def test_success_returns_mp4():
     assert response.status_code == 200
     assert "video/mp4" in response.headers["content-type"]
     assert response.content == fake_mp4
+
+
+def test_ffmpeg_timeout_returns_422():
+    import subprocess as sp
+
+    with patch("src.main.subprocess.run", side_effect=sp.TimeoutExpired(cmd="ffmpeg", timeout=300)):
+        response = client.post(
+            "/export",
+            content=b"fake webm data",
+            headers={"content-type": "video/webm"},
+        )
+
+    assert response.status_code == 422
+    assert "timed out" in response.json()["detail"].lower()

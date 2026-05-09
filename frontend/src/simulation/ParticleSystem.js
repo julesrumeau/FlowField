@@ -64,7 +64,7 @@ export class ParticleSystem {
     this._gpuCompute.setVariableDependencies(this._posVar, [this._posVar, this._velVar]);
 
     const err = this._gpuCompute.init();
-    if (err !== null) console.error('GPUComputationRenderer init error:', err);
+    if (err !== null) throw new Error(`GPUComputationRenderer init failed: ${err}`);
 
     const vu = this._velVar.material.uniforms;
     vu.u_time       = { value: 0 };

@@ -48,7 +48,9 @@ async def export_video(request: Request):
                 str(output_path),
             ]
 
-        result = await asyncio.to_thread(subprocess.run, ffmpeg_cmd, capture_output=True, text=True)
+        result = await asyncio.to_thread(
+            subprocess.run, ffmpeg_cmd, capture_output=True, text=True, timeout=300
+        )
 
         if result.returncode != 0:
             shutil.rmtree(work_dir, ignore_errors=True)
@@ -60,6 +62,9 @@ async def export_video(request: Request):
             headers={"Content-Disposition": 'attachment; filename="flowfield.mp4"'},
             background=BackgroundTask(shutil.rmtree, work_dir, ignore_errors=True),
         )
+    except subprocess.TimeoutExpired:
+        shutil.rmtree(work_dir, ignore_errors=True)
+        raise HTTPException(status_code=422, detail="FFmpeg conversion timed out (> 5 min)")
     except HTTPException:
         raise
     except Exception as e:

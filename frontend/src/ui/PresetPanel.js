@@ -81,11 +81,13 @@ export class PresetPanel {
   }
 
   async _delete(id, row) {
-    row.remove();
     try {
       await deletePreset(id);
+      row.remove();
     } catch (e) {
       console.error('deletePreset failed:', e);
+      this._errorMsg.textContent = 'Erreur suppression';
+      setTimeout(() => { this._errorMsg.textContent = ''; }, 3000);
     } finally {
       this._loadList();
     }

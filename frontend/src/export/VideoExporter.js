@@ -56,7 +56,7 @@ export class VideoExporter {
     // RAF dédié à la soumission de frames : tourne en parallèle du RAF du renderer,
     // s'arrête dès que le recorder devient inactif.
     const submitFrame = () => {
-      if (this._recorder?.state === 'recording') {
+      if (this._recorder?.state === 'recording' && this._track) {
         this._track.requestFrame();
         requestAnimationFrame(submitFrame);
       }

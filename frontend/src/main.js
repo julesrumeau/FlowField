@@ -16,9 +16,11 @@ const bounds        = 50;
 const trailLength   = 0.95;
 const bloomStrength = 1.0;
 
-const stats = new Stats();
-stats.showPanel(0);
-document.body.appendChild(stats.dom);
+const stats = window.Stats ? new window.Stats() : null;
+if (stats) {
+  stats.showPanel(0);
+  document.body.appendChild(stats.dom);
+}
 
 const particleSystem = new ParticleSystem({ particleCount, speed, turbulence, noiseScale, bounds, seed });
 const particleMesh   = new ParticleMesh({ bounds });
