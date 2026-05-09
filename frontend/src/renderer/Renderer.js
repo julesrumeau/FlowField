@@ -3,20 +3,20 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { PostProcessing } from './PostProcessing.js';
 
 export class Renderer {
-  constructor({ canvas, particleSystem, particleMesh, trailLength = 0.95, bloomStrength = 1.0, bounds, stats }) {
+  constructor({ canvas, particleSystem, particleMesh, trailLength = 0.95, bloomStrength = 1.0, stats }) {
     this._canvas         = canvas;
     this._particleSystem = particleSystem;
     this._particleMesh   = particleMesh;
     this._trailLength    = trailLength;
     this._bloomStrength  = bloomStrength;
-    this._bounds         = bounds;
     this._time   = 0;
     this._lastTs = null;
-    this._stats = stats;
+    this._stats  = stats;
   }
 
   init() {
-    this._renderer = new THREE.WebGLRenderer({ canvas: this._canvas, antialias: false });
+    this._paused   = false;
+    this._renderer = new THREE.WebGLRenderer({ canvas: this._canvas, antialias: false, preserveDrawingBuffer: true });
     this._renderer.setPixelRatio(window.devicePixelRatio);
     this._renderer.setSize(window.innerWidth, window.innerHeight);
 
@@ -40,19 +40,27 @@ export class Renderer {
     window.addEventListener('resize', () => this._onResize());
   }
 
-  _onResize() {
-    const w = window.innerWidth, h = window.innerHeight;
+  get canvas()        { return this._canvas;   }
+  get threeRenderer() { return this._renderer; }
+
+  resize(w, h) {
     this._camera.aspect = w / h;
     this._camera.updateProjectionMatrix();
     this._renderer.setSize(w, h);
     this._post.resize(w, h);
   }
 
-  start() {
-    requestAnimationFrame(ts => this._loop(ts));
-  }
+  _onResize() { this.resize(window.innerWidth, window.innerHeight); }
+
+  get currentTime() { return this._time; }
+
+  pause()  { this._paused = true; }
+  resume() { this._paused = false; this._lastTs = null; requestAnimationFrame(ts => this._loop(ts)); }
+
+  start() { requestAnimationFrame(ts => this._loop(ts)); }
 
   _loop(ts) {
+    if (this._paused) return;
     requestAnimationFrame(ts2 => this._loop(ts2));
     const dt = this._lastTs === null ? 0.016 : Math.min((ts - this._lastTs) / 1000, 0.05);
     this._lastTs = ts;
@@ -63,12 +71,12 @@ export class Renderer {
   tick(dt, time) {
     this._stats?.begin();
     this._particleSystem.update(dt, time);
-    this._particleMesh.sync(this._particleSystem.positions, this._particleSystem.count, this._bounds);
+    this._particleMesh.setPositionTexture(this._particleSystem.getPositionTexture());
     this._controls.update();
     this._post.render();
     this._stats?.end();
   }
 
-  setTrailLength(v)   { this._post.setTrailLength(v); }
+  setTrailLength(v)   { this._post.setTrailLength(v);   }
   setBloomStrength(v) { this._post.setBloomStrength(v); }
 }

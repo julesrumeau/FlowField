@@ -1,0 +1,104 @@
+stages:
+  - validate
+  - package
+  - deploy
+
+variables:
+  REGISTRY: dvp-srv-gitlab.campus12avenue.fr:5050
+  IMAGE_BASE: dvp-srv-gitlab.campus12avenue.fr:5050/tp-devops-2526/s04/flowfield
+
+default:
+  image:
+    name: dvp-srv-gitlab.campus12avenue.fr:5050/root/tp1:latest
+    entrypoint: [""]
+  tags:
+    - docker
+  before_script:
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - printf "%s\n" "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    - ansible-galaxy collection install -r ansible/requirements.yml
+
+# ── VALIDATE ────────────────────────────────────────────────────
+validate_inventory:
+  stage: validate
+  script:
+    - ansible-inventory -i ansible/inventories/hosts.yml --list
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+validate_playbook:
+  stage: validate
+  script:
+    - ansible-playbook -i ansible/inventories/hosts.yml ansible/playbook.yml --syntax-check
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+# ── PACKAGE (build + push images Docker) ────────────────────────
+package_frontend:
+  stage: package
+  image: docker:27
+  services:
+    - name: docker:27-dind
+      command: ["--insecure-registry=dvp-srv-gitlab.campus12avenue.fr:5050"]
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - docker build -t $IMAGE_BASE/frontend:$CI_COMMIT_SHA -t $IMAGE_BASE/frontend:latest ./frontend
+    - docker push "$IMAGE_BASE/frontend:$CI_COMMIT_SHA"
+    - docker push "$IMAGE_BASE/frontend:latest"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+package_backend:
+  stage: package
+  image: docker:27
+  services:
+    - name: docker:27-dind
+      command: ["--insecure-registry=dvp-srv-gitlab.campus12avenue.fr:5050"]
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - docker build -t $IMAGE_BASE/backend:$CI_COMMIT_SHA -t $IMAGE_BASE/backend:latest ./backend
+    - docker push "$IMAGE_BASE/backend:$CI_COMMIT_SHA"
+    - docker push "$IMAGE_BASE/backend:latest"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+package_export:
+  stage: package
+  image: docker:27
+  services:
+    - name: docker:27-dind
+      command: ["--insecure-registry=dvp-srv-gitlab.campus12avenue.fr:5050"]
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - docker build --network host -t $IMAGE_BASE/export:$CI_COMMIT_SHA -t $IMAGE_BASE/export:latest ./export
+    - docker push "$IMAGE_BASE/export:$CI_COMMIT_SHA"
+    - docker push "$IMAGE_BASE/export:latest"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+# ── DEPLOY ──────────────────────────────────────────────────────
+deploy:
+  stage: deploy
+  script:
+    - cat ~/.ssh/known_hosts
+    - ansible-playbook -u ansible -i ansible/inventories/hosts.yml ansible/playbook.yml
+  environment:
+    name: production
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual

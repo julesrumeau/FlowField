@@ -1,8 +1,7 @@
 export class Controls {
-  constructor({ particleSystem, particleMesh, flowField, renderer }) {
+  constructor({ particleSystem, particleMesh, renderer }) {
     this._ps       = particleSystem;
     this._pm       = particleMesh;
-    this._ff       = flowField;
     this._renderer = renderer;
     this._inputs   = {};
     document.body.appendChild(this._build());
@@ -16,7 +15,7 @@ export class Controls {
       { key: 'speed',         label: 'Speed',       min: 0.1,  max: 50.0,  step: 0.1,  value: 0.8   },
       { key: 'turbulence',    label: 'Turbulence',  min: 0.01, max: 1.0,   step: 0.01, value: 0.3   },
       { key: 'noiseScale',    label: 'Noise Scale', min: 0.1,  max: 5.0,   step: 0.1,  value: 1.2   },
-      { key: 'particleCount', label: 'Particles',   min: 1000, max: 150000,step: 1000, value: 80000 },
+      { key: 'particleCount', label: 'Particles',   min: 1000, max: 300000, step: 1000, value: 80000 }, // cap UI à 300k pour les perfs — capacité GPU réelle : 524 288
       { key: 'size',          label: 'Size',        min: 0.2,  max: 8.0,   step: 0.1,  value: 1.5   },
       { key: 'trailLength',   label: 'Trails',      min: 0.0, max: 0.99,  step: 0.01, value: 0.95  },
       { key: 'bloomStrength', label: 'Bloom',       min: 0.0,  max: 3.0,   step: 0.1,  value: 1.0   },
@@ -61,10 +60,10 @@ export class Controls {
 
   _apply(key, value) {
     if (key === 'noiseScale') {
-      this._ff.noiseScale = value;
+      this._ps.setParams({ noiseScale: value });
     } else if (key === 'particleCount') {
       this._ps.setCount(value);
-      this._pm.setDrawCount(value);
+      this._pm.setCount(value);
     } else if (key === 'size') {
       this._pm.setSize(value);
     } else if (key === 'trailLength') {

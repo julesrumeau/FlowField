@@ -125,6 +125,63 @@
       font-size: 10px;
       min-height: 14px;
     }
+    #export-panel {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      z-index: 10;
+    }
+    #health-panel {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+    }
+    .export-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.6);
+      font-family: monospace;
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+    .export-btn:hover:not(:disabled) {
+      border-color: rgba(255,255,255,0.5);
+      color: rgba(255,255,255,0.9);
+    }
+    .export-btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .export-controls {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    #rec-indicator {
+      display: none;
+      color: rgba(255,60,60,0.9);
+      font-family: monospace;
+      font-size: 11px;
+      animation: blink 1s step-start infinite;
+    }
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+    #export-msg {
+      color: rgba(255,80,80,0.8);
+      font-family: monospace;
+      font-size: 10px;
+      min-height: 14px;
+    }
     #preset-popup-overlay {
       position: fixed;
       inset: 0;
@@ -187,6 +244,17 @@
 <body>
   <canvas id="canvas"></canvas>
   <script src="https://mrdoob.github.io/stats.js/build/stats.min.js"></script>
+  <div id="export-panel">
+    <div class="export-controls">
+      <button id="btn-record-start" class="export-btn">Rec MP4</button>
+      <button id="btn-record-stop" class="export-btn" disabled>Stop</button>
+      <span id="rec-indicator">● REC</span>
+    </div>
+    <span id="export-msg"></span>
+  </div>
+  <div id="health-panel">
+    <span id="health"></span>
+  </div>
   <script type="module" src="./main.js"></script>
   <script type="module">
     fetch('/api/health')

@@ -47,7 +47,6 @@ export class PresetPanel {
   _renderList(presets) {
     this._list.innerHTML = '';
     if (presets.length === 0) {
-      // Fix #9: empty state message
       const empty = document.createElement('span');
       empty.className = 'preset-name';
       empty.style.cursor = 'default';
@@ -73,7 +72,6 @@ export class PresetPanel {
     const del = document.createElement('button');
     del.className = 'preset-delete';
     del.textContent = '✕';
-    // Fix #6: accessible label for screen readers
     del.setAttribute('aria-label', `Supprimer ${preset.nom}`);
     del.addEventListener('click', () => this._delete(preset.id, row));
 
@@ -83,18 +81,19 @@ export class PresetPanel {
   }
 
   async _delete(id, row) {
-    row.remove();
     try {
       await deletePreset(id);
-      this._loadList();
+      row.remove();
     } catch (e) {
       console.error('deletePreset failed:', e);
+      this._errorMsg.textContent = 'Erreur suppression';
+      setTimeout(() => { this._errorMsg.textContent = ''; }, 3000);
+    } finally {
       this._loadList();
     }
   }
 
   _openPopup() {
-    // Fix #2: prevent stacking multiple popups
     if (document.getElementById('preset-popup-overlay')) return;
 
     const overlay = document.createElement('div');
@@ -126,7 +125,6 @@ export class PresetPanel {
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 
-    // Fix #7: input is already in the DOM, no need for setTimeout
     input.focus();
 
     const close = () => overlay.remove();

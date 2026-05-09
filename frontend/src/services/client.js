@@ -1,8 +1,16 @@
 // /api/ is proxied by nginx to backend:8000/ — relative URLs work in all Docker environments
 const BASE = '/api';
+const TIMEOUT_MS = 10_000;
+
+function fetchWithTimeout(url, options = {}) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  return fetch(url, { ...options, signal: ctrl.signal })
+    .finally(() => clearTimeout(timer));
+}
 
 export async function listPresets() {
-  const res = await fetch(`${BASE}/presets/`);
+  const res = await fetchWithTimeout(`${BASE}/presets/`);
   if (!res.ok) {
     const detail = await res.text();
     throw new Error(`listPresets: ${res.status} — ${detail}`);
@@ -11,8 +19,10 @@ export async function listPresets() {
 }
 
 export async function savePreset(nom, params) {
-  // seed is required by the backend schema but has no UI slider yet — fixed at 0 until a seed control is added
-  const res = await fetch(`${BASE}/presets/`, {
+  // seed est requis par le schéma backend mais n'a pas encore de contrôle UI — fixé à 0 pour l'instant.
+  // TODO : ajouter un slider seed pour permettre de sauvegarder des presets vraiment reproductibles
+  //        (champ vectoriel identique à chaque rechargement, pas seulement les paramètres visuels).
+  const res = await fetchWithTimeout(`${BASE}/presets/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ nom, seed: 0, params }),
@@ -25,7 +35,7 @@ export async function savePreset(nom, params) {
 }
 
 export async function deletePreset(id) {
-  const res = await fetch(`${BASE}/presets/${id}`, { method: 'DELETE' });
+  const res = await fetchWithTimeout(`${BASE}/presets/${id}`, { method: 'DELETE' });
   if (!res.ok) {
     const detail = await res.text();
     throw new Error(`deletePreset: ${res.status} — ${detail}`);

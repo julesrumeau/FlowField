@@ -1,0 +1,122 @@
+- name: Configure VM1 - Docker + FlowField
+  hosts: vm1
+  become: true
+  vars:
+    app_dir: /opt/flowfield
+    registry_url: dvp-srv-gitlab.campus12avenue.fr:5050
+    db_password: "{{ lookup('env', 'DB_PASSWORD') }}"
+
+  tasks:
+    - name: Ensure Docker cert directory for GitLab registry exists
+      file:
+        path: /etc/docker/certs.d/dvp-srv-gitlab.campus12avenue.fr:5050
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install openssl
+      apt:
+        name: openssl
+        state: present
+        update_cache: true
+
+    - name: Retrieve GitLab registry certificate
+      shell: |
+        echo | openssl s_client -connect 172.16.21.16:5050 -showcerts 2>/dev/null \
+        | openssl x509 -outform PEM
+      register: registry_cert
+      changed_when: false
+
+    - name: Install GitLab registry certificate for Docker
+      copy:
+        dest: /etc/docker/certs.d/dvp-srv-gitlab.campus12avenue.fr:5050/ca.crt
+        content: "{{ registry_cert.stdout }}"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install Docker dependencies
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/debian/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/debian {{ ansible_facts['distribution_release'] }} stable"
+        state: present
+
+    - name: Install Docker CE and Compose plugin
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - docker-compose-plugin
+        state: present
+
+    - name: Start and enable Docker
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Configure Docker daemon
+      copy:
+        content: |
+          {
+            "insecure-registries": [
+              "dvp-srv-gitlab.campus12avenue.fr:5050",
+              "dvp-srv-gitlab.campus12avenue.fr"
+            ]
+          }
+        dest: /etc/docker/daemon.json
+        mode: "0644"
+
+    - name: Restart Docker to load config
+      service:
+        name: docker
+        state: restarted
+
+    - name: Add GitLab registry to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "172.16.21.16 dvp-srv-gitlab.campus12avenue.fr"
+        state: present
+
+    - name: Log in to GitLab registry
+      community.docker.docker_login:
+        registry_url: "{{ registry_url }}"
+        username: "flowfield-token"
+        password: "{{ lookup('env', 'REGISTRY_API_TOKEN') }}"
+
+    - name: Create app directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Copy compose.yaml
+      copy:
+        src: ../../compose.yaml
+        dest: "{{ app_dir }}/compose.yaml"
+
+    - name: Write .env file
+      copy:
+        content: |
+          DB_PASSWORD={{ db_password }}
+        dest: "{{ app_dir }}/.env"
+        mode: "0600"
+
+    - name: Deploy with Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dir }}"
+        pull: always
+        state: present
