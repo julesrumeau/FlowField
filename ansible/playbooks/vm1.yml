@@ -125,10 +125,10 @@
         state: present
 
     - name: Log in to GitLab registry
-      community.docker.docker_login:
-        registry_url: "{{ registry_url }}"
-        username: "oauth2"
-        password: "{{ lookup('env', 'REGISTRY_API_TOKEN') }}"
+      shell: |
+        echo "{{ lookup('env', 'REGISTRY_API_TOKEN') }}" | \
+        docker login {{ registry_url }} -u oauth2 --password-stdin
+      no_log: true
 
     # ── DEPLOY ───────────────────────────────────────────────────
 
