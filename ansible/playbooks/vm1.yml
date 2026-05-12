@@ -128,6 +128,8 @@
       shell: |
         echo "{{ lookup('env', 'REGISTRY_API_TOKEN') }}" | \
         docker login {{ registry_url }} -u oauth2 --password-stdin
+      environment:
+        HOME: /root
       no_log: true
 
     # ── DEPLOY ───────────────────────────────────────────────────
@@ -151,10 +153,10 @@
         mode: "0600"
 
     - name: Deploy with Docker Compose
-      community.docker.docker_compose_v2:
-        project_src: "{{ app_dir }}"
-        pull: always
-        state: present
+      shell: |
+        docker compose -f {{ app_dir }}/compose.yaml up -d --pull always
+      environment:
+        HOME: /root
 
   handlers:
     - name: Restart Docker
