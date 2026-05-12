@@ -7,46 +7,11 @@
     db_password: "{{ lookup('env', 'DB_PASSWORD') }}"
 
   tasks:
-    - name: Ensure Docker cert directory for GitLab registry exists
-      file:
-        path: /etc/docker/certs.d/dvp-srv-gitlab.campus12avenue.fr:5050
-        state: directory
-        owner: root
-        group: root
-        mode: "0755"
 
-    - name: Install openssl
-      apt:
-        name: openssl
-        state: present
-        update_cache: true
+    # ── DOCKER ──────────────────────────────────────────────────
 
-    - name: Retrieve GitLab registry certificate
-      shell: |
-        echo | openssl s_client -connect 172.16.21.16:5050 -showcerts 2>/dev/null \
-        | openssl x509 -outform PEM
-      register: registry_cert
-      changed_when: false
-
-    - name: Install GitLab registry certificate for Docker
-      copy:
-        dest: /etc/docker/certs.d/dvp-srv-gitlab.campus12avenue.fr:5050/ca.crt
-        content: "{{ registry_cert.stdout }}"
-        owner: root
-        group: root
-        mode: "0644"
-
-    - name: Install GitLab CA certificate in system trust store
-      copy:
-        dest: /usr/local/share/ca-certificates/gitlab-ca.crt
-        content: "{{ registry_cert.stdout }}"
-        owner: root
-        group: root
-        mode: "0644"
-
-    - name: Update system CA certificates
-      command: update-ca-certificates
-      changed_when: true
+    - name: Check installed packages
+      package_facts:
 
     - name: Install Docker dependencies
       apt:
@@ -54,7 +19,10 @@
           - ca-certificates
           - curl
           - gnupg
+          - openssl
+          - python3-docker
         state: present
+        update_cache: true
 
     - name: Add Docker GPG key
       apt_key:
@@ -74,28 +42,81 @@
           - docker-compose-plugin
         state: present
 
+    # ── DNS ─────────────────────────────────────────────────────
+
+    - name: Configure host DNS
+      copy:
+        dest: /etc/resolv.conf
+        content: |
+          nameserver {{ dns_server }}
+          search {{ dns_search }}
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Configure Docker DNS
+      copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "dns": ["{{ dns_server }}"],
+            "dns-search": ["{{ dns_search }}"]
+          }
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart Docker
+
+    # ── TLS CERTIFICATE ──────────────────────────────────────────
+
+    - name: Ensure Docker cert directory exists
+      file:
+        path: /etc/docker/certs.d/dvp-srv-gitlab.campus12avenue.fr:5050
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Retrieve GitLab registry certificate
+      shell: |
+        echo | openssl s_client -connect 172.16.21.16:5050 -showcerts 2>/dev/null \
+        | openssl x509 -outform PEM
+      register: registry_cert
+      changed_when: false
+
+    - name: Install cert for Docker registry (certs.d)
+      copy:
+        dest: /etc/docker/certs.d/dvp-srv-gitlab.campus12avenue.fr:5050/ca.crt
+        content: "{{ registry_cert.stdout }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart Docker
+
+    - name: Install cert in system CA bundle
+      copy:
+        dest: /usr/local/share/ca-certificates/gitlab-ca.crt
+        content: "{{ registry_cert.stdout }}"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Update system CA certificates
+      command: update-ca-certificates
+      changed_when: true
+
+    - name: Flush handlers
+      meta: flush_handlers
+
+    # ── SERVICE ──────────────────────────────────────────────────
+
     - name: Start and enable Docker
       service:
         name: docker
         state: started
         enabled: true
 
-    - name: Configure Docker daemon
-      copy:
-        content: |
-          {
-            "insecure-registries": [
-              "dvp-srv-gitlab.campus12avenue.fr:5050",
-              "dvp-srv-gitlab.campus12avenue.fr"
-            ]
-          }
-        dest: /etc/docker/daemon.json
-        mode: "0644"
-
-    - name: Restart Docker to load config
-      service:
-        name: docker
-        state: restarted
+    # ── REGISTRY ─────────────────────────────────────────────────
 
     - name: Add GitLab registry to /etc/hosts
       lineinfile:
@@ -106,8 +127,10 @@
     - name: Log in to GitLab registry
       community.docker.docker_login:
         registry_url: "{{ registry_url }}"
-        username: "flowfield-token"
+        username: "oauth2"
         password: "{{ lookup('env', 'REGISTRY_API_TOKEN') }}"
+
+    # ── DEPLOY ───────────────────────────────────────────────────
 
     - name: Create app directory
       file:
@@ -132,3 +155,9 @@
         project_src: "{{ app_dir }}"
         pull: always
         state: present
+
+  handlers:
+    - name: Restart Docker
+      service:
+        name: docker
+        state: restarted
