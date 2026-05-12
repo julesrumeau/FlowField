@@ -36,6 +36,18 @@
         group: root
         mode: "0644"
 
+    - name: Install GitLab CA certificate in system trust store
+      copy:
+        dest: /usr/local/share/ca-certificates/gitlab-ca.crt
+        content: "{{ registry_cert.stdout }}"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Update system CA certificates
+      command: update-ca-certificates
+      changed_when: true
+
     - name: Install Docker dependencies
       apt:
         name:
