@@ -1,5 +1,6 @@
 stages:
   - validate
+  - test
   - package
   - deploy
 
@@ -33,6 +34,29 @@ validate_playbook:
   stage: validate
   script:
     - ansible-playbook -i ansible/inventories/hosts.yml ansible/playbook.yml --syntax-check
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+# ── TEST ────────────────────────────────────────────────────────
+test_backend:
+  stage: test
+  image: python:3.12-slim
+  before_script:
+    - cd backend
+    - pip install -r requirements.txt pytest httpx --quiet
+  script:
+    - pytest tests/ -v
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+test_export:
+  stage: test
+  image: python:3.12-slim
+  before_script:
+    - cd export
+    - pip install -r requirements.txt --quiet
+  script:
+    - pytest tests/ -v
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
 
