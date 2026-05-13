@@ -2,7 +2,6 @@ stages:
   - validate
   - test
   - package
-  - deploy
 
 variables:
   REGISTRY: dvp-srv-gitlab.campus12avenue.fr:5050
@@ -114,15 +113,3 @@ package_export:
     - docker push "$IMAGE_BASE/export:latest"
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
-
-# ── DEPLOY ──────────────────────────────────────────────────────
-deploy:
-  stage: deploy
-  script:
-    - cat ~/.ssh/known_hosts
-    - ansible-playbook -u ansible -i ansible/inventories/hosts.yml ansible/playbook.yml
-  environment:
-    name: production
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      when: manual
