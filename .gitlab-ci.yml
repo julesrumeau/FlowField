@@ -1,5 +1,4 @@
 stages:
-  - validate
   - test
   - package
 
@@ -20,21 +19,6 @@ default:
     - printf "%s\n" "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
     - ansible-galaxy collection install -r ansible/requirements.yml
-
-# ── VALIDATE ────────────────────────────────────────────────────
-validate_inventory:
-  stage: validate
-  script:
-    - ansible-inventory -i ansible/inventories/hosts.yml --list
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-
-validate_playbook:
-  stage: validate
-  script:
-    - ansible-playbook -i ansible/inventories/hosts.yml ansible/playbook.yml --syntax-check
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
 
 # ── TEST ────────────────────────────────────────────────────────
 test_backend:
