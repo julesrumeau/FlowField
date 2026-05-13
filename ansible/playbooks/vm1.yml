@@ -85,14 +85,29 @@
     - name: Flush handlers before Docker login
       meta: flush_handlers
 
-    - name: Install Python Docker SDK and compose dependencies
+    - name: Install Python Docker SDK dependencies
       ansible.builtin.apt:
         name:
           - python3-pip
           - python3-docker
-          - docker-compose-v2
         state: present
         update_cache: true
+
+    - name: Ensure Docker CLI plugins directory exists
+      file:
+        path: /usr/local/lib/docker/cli-plugins
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install Docker Compose v2 plugin
+      ansible.builtin.get_url:
+        url: https://github.com/docker/compose/releases/download/v2.27.1/docker-compose-linux-x86_64
+        dest: /usr/local/lib/docker/cli-plugins/docker-compose
+        mode: "0755"
+        owner: root
+        group: root
 
     - name: Add GitLab registry to /etc/hosts
       lineinfile:
@@ -125,10 +140,11 @@
         mode: "0600"
 
     - name: Deploy with Docker Compose
-      community.docker.docker_compose_v2:
-        project_src: "{{ app_dir }}"
-        pull: always
-        state: present
+      ansible.builtin.shell:
+        cmd: docker compose pull && docker compose up -d --remove-orphans
+        chdir: "{{ app_dir }}"
+      register: compose_output
+      changed_when: "'Started' in compose_output.stdout or 'Created' in compose_output.stdout"
 
   handlers:
     - name: Restart Docker
