@@ -8,68 +8,51 @@
 
   tasks:
 
-    # ── DOCKER ──────────────────────────────────────────────────
-
-    - name: Check installed packages
+    - name: Check if docker is installed (package)
       package_facts:
 
-    - name: Install Docker dependencies
-      apt:
-        name:
-          - ca-certificates
-          - curl
-          - gnupg
-          - openssl
-          - python3-docker
+    - name: Install Docker
+      package:
+        name: docker.io
         state: present
-        update_cache: true
+      when: "'docker.io' not in ansible_facts.packages"
 
-    - name: Add Docker GPG key
-      apt_key:
-        url: https://download.docker.com/linux/debian/gpg
-        state: present
+    - name: Ensure Docker config directory exists
+      file:
+        path: /etc/docker
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
 
-    - name: Add Docker repository
-      apt_repository:
-        repo: "deb [arch=amd64] https://download.docker.com/linux/debian {{ ansible_facts['distribution_release'] }} stable"
-        state: present
-
-    - name: Install Docker CE and Compose plugin
-      apt:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - docker-compose-plugin
-        state: present
-
-    # ── DNS ─────────────────────────────────────────────────────
-
-    - name: Configure host DNS
+    - name: Configure host DNS (resolv.conf)
       copy:
         dest: /etc/resolv.conf
-        content: |
-          nameserver {{ dns_server }}
-          search {{ dns_search }}
         owner: root
         group: root
         mode: "0644"
+        content: |
+          nameserver {{ dns_server }}
+          search {{ dns_search }}
 
     - name: Configure Docker DNS
       copy:
         dest: /etc/docker/daemon.json
+        owner: root
+        group: root
+        mode: "0644"
         content: |
           {
             "dns": ["{{ dns_server }}"],
             "dns-search": ["{{ dns_search }}"]
           }
-        owner: root
-        group: root
-        mode: "0644"
-      notify: Restart Docker
 
-    # ── TLS CERTIFICATE ──────────────────────────────────────────
+    - name: Restart Docker
+      ansible.builtin.service:
+        name: docker
+        state: restarted
 
-    - name: Ensure Docker cert directory exists
+    - name: Ensure Docker registry cert directory exists
       file:
         path: /etc/docker/certs.d/dvp-srv-gitlab.campus12avenue.fr:5050
         state: directory
@@ -77,14 +60,20 @@
         group: root
         mode: "0755"
 
+    - name: Install openssl
+      apt:
+        name: openssl
+        state: present
+        update_cache: true
+
     - name: Retrieve GitLab registry certificate
       shell: |
-        echo | openssl s_client -connect 172.16.21.16:5050 -showcerts 2>/dev/null \
+        echo | openssl s_client -connect dvp-srv-gitlab.campus12avenue.fr:5050 -showcerts 2>/dev/null \
         | openssl x509 -outform PEM
       register: registry_cert
       changed_when: false
 
-    - name: Install cert for Docker registry (certs.d)
+    - name: Install GitLab registry certificate for Docker
       copy:
         dest: /etc/docker/certs.d/dvp-srv-gitlab.campus12avenue.fr:5050/ca.crt
         content: "{{ registry_cert.stdout }}"
@@ -93,30 +82,17 @@
         mode: "0644"
       notify: Restart Docker
 
-    - name: Install cert in system CA bundle
-      copy:
-        dest: /usr/local/share/ca-certificates/gitlab-ca.crt
-        content: "{{ registry_cert.stdout }}"
-        owner: root
-        group: root
-        mode: "0644"
-
-    - name: Update system CA certificates
-      command: update-ca-certificates
-      changed_when: true
-
-    - name: Flush handlers
+    - name: Flush handlers before Docker login
       meta: flush_handlers
 
-    # ── SERVICE ──────────────────────────────────────────────────
-
-    - name: Start and enable Docker
-      service:
-        name: docker
-        state: started
-        enabled: true
-
-    # ── REGISTRY ─────────────────────────────────────────────────
+    - name: Install Python Docker SDK and compose dependencies
+      ansible.builtin.apt:
+        name:
+          - python3-pip
+          - python3-docker
+          - docker-compose-v2
+        state: present
+        update_cache: true
 
     - name: Add GitLab registry to /etc/hosts
       lineinfile:
@@ -124,15 +100,11 @@
         line: "172.16.21.16 dvp-srv-gitlab.campus12avenue.fr"
         state: present
 
-    - name: Log in to GitLab registry
-      shell: |
-        echo "{{ lookup('env', 'REGISTRY_API_TOKEN') }}" | \
-        docker login {{ registry_url }} -u oauth2 --password-stdin
-      environment:
-        HOME: /root
-      no_log: true
-
-    # ── DEPLOY ───────────────────────────────────────────────────
+    - name: Login to GitLab container registry
+      community.docker.docker_login:
+        registry_url: "{{ registry_url }}"
+        username: "oauth2"
+        password: "{{ lookup('env', 'REGISTRY_API_TOKEN') }}"
 
     - name: Create app directory
       file:
@@ -153,13 +125,13 @@
         mode: "0600"
 
     - name: Deploy with Docker Compose
-      shell: |
-        docker compose -f {{ app_dir }}/compose.yaml up -d --pull always
-      environment:
-        HOME: /root
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dir }}"
+        pull: always
+        state: present
 
   handlers:
     - name: Restart Docker
-      service:
+      ansible.builtin.service:
         name: docker
         state: restarted
