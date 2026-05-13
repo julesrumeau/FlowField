@@ -34,15 +34,15 @@ export class PostProcessing {
       depthWrite:  false,
     });
     this._fadeScene = new THREE.Scene();
-    this._fadeScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this._fadeMat));
+    this._fadePlaneGeo = new THREE.PlaneGeometry(2, 2);
+    this._fadeScene.add(new THREE.Mesh(this._fadePlaneGeo, this._fadeMat));
     this._fadeCamera = ortho;
 
     // Display scene: full-screen quad showing the accumulated trail texture
     const displayScene = new THREE.Scene();
-    displayScene.add(new THREE.Mesh(
-      new THREE.PlaneGeometry(2, 2),
-      new THREE.MeshBasicMaterial({ map: this._trailTarget.texture, depthTest: false, depthWrite: false })
-    ));
+    this._displayPlaneGeo = new THREE.PlaneGeometry(2, 2);
+    this._displayMat = new THREE.MeshBasicMaterial({ map: this._trailTarget.texture, depthTest: false, depthWrite: false });
+    displayScene.add(new THREE.Mesh(this._displayPlaneGeo, this._displayMat));
 
     // Composer: display → bloom → screen
     this._composer = new EffectComposer(renderer);
@@ -83,5 +83,14 @@ export class PostProcessing {
     this._trailTarget.setSize(w * dpr, h * dpr);
     this._composer.setSize(w, h);
     this._initialized = false;
+  }
+
+  dispose() {
+    this._fadePlaneGeo.dispose();
+    this._fadeMat.dispose();
+    this._displayPlaneGeo.dispose();
+    this._displayMat.dispose();
+    this._trailTarget.dispose();
+    this._composer.dispose();
   }
 }

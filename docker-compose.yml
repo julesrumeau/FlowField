@@ -4,7 +4,8 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   backend:
     build: ./backend
@@ -15,11 +16,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
   export:
     build: ./export
-    ports:
-      - "8001:8001"
 
   db:
     image: postgres:16-alpine

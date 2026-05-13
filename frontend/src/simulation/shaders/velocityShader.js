@@ -62,7 +62,7 @@ export const velocityShader = /* glsl */`
     float vz = noise3D(pos.x*s + o + 200.0,  pos.y*s + o + 200.0, pos.z*s + t*0.041 + o + 200.0);
 
     float len = length(vec3(vx, vy, vz));
-    if (len < 0.0001) len = 1.0;
+    len = max(len, 0.0001);
     vec3 dir = vec3(vx, vy, vz) / len;
 
     vec3 target = dir * u_speed;

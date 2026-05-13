@@ -1,15 +1,16 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.db.client import init_db
+from src.db.client import init_db, get_pool
 from src.routes.presets import router as presets_router
-from src.db.client import get_pool
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
     yield
+    pool = await get_pool()
+    await pool.close()
 
 
 app = FastAPI(title="FlowField API", lifespan=lifespan)

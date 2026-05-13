@@ -89,7 +89,7 @@ export class Controls {
       const numeric = parseFloat(value);
       if (!Number.isFinite(numeric)) continue;
       this._inputs[key].value = numeric;
-      this._inputs[key].dispatchEvent(new InputEvent('input'));
+      this._inputs[key].dispatchEvent(new Event('input', { bubbles: true }));
     }
   }
 }

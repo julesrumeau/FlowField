@@ -37,7 +37,8 @@ export class Renderer {
       bloomStrength: this._bloomStrength,
     });
 
-    window.addEventListener('resize', () => this._onResize());
+    this._onResizeBound = () => this._onResize();
+    window.addEventListener('resize', this._onResizeBound);
   }
 
   get canvas()        { return this._canvas;   }
@@ -84,4 +85,10 @@ export class Renderer {
 
   setTrailLength(v)   { this._post.setTrailLength(v);   }
   setBloomStrength(v) { this._post.setBloomStrength(v); }
+
+  dispose() {
+    window.removeEventListener('resize', this._onResizeBound);
+    this._controls.dispose();
+    this._renderer.dispose();
+  }
 }

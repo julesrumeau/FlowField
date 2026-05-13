@@ -84,7 +84,6 @@ export class PresetPanel {
   async _delete(id, row) {
     try {
       await deletePreset(id);
-      row.remove();
       this._loadList();
     } catch (e) {
       console.error('deletePreset failed:', e);

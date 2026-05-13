@@ -12,13 +12,6 @@ default:
     entrypoint: [""]
   tags:
     - docker
-  before_script:
-    - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
-    - chmod 600 ~/.ssh/id_ed25519
-    - printf "%s\n" "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-    - ansible-galaxy collection install -r ansible/requirements.yml
 
 # ── TEST ────────────────────────────────────────────────────────
 test_backend:
@@ -26,7 +19,7 @@ test_backend:
   image: python:3.12-slim
   before_script:
     - cd backend
-    - pip install -r requirements.txt pytest httpx --quiet
+    - pip install -r requirements-test.txt --quiet
   script:
     - pytest tests/ -v
   rules:
@@ -37,7 +30,7 @@ test_export:
   image: python:3.12-slim
   before_script:
     - cd export
-    - pip install -r requirements.txt --quiet
+    - pip install -r requirements.txt -r requirements-test.txt --quiet
   script:
     - pytest tests/ -v
   rules:
@@ -92,7 +85,7 @@ package_export:
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
   script:
-    - docker build --network host -t $IMAGE_BASE/export:$CI_COMMIT_SHA -t $IMAGE_BASE/export:latest ./export
+    - docker build -t $IMAGE_BASE/export:$CI_COMMIT_SHA -t $IMAGE_BASE/export:latest ./export
     - docker push "$IMAGE_BASE/export:$CI_COMMIT_SHA"
     - docker push "$IMAGE_BASE/export:latest"
   rules:

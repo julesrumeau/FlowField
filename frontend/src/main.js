@@ -31,12 +31,13 @@ try {
 
   renderer.init();
   particleSystem.init(renderer.threeRenderer);
+  particleMesh.setCount(particleSystem.count);
   renderer.start();
 } catch (err) {
   console.error('FlowField init failed:', err);
   document.body.insertAdjacentHTML('beforeend',
     `<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0a0a0f;color:rgba(255,80,80,0.9);font-family:monospace;font-size:13px;z-index:999">
-      Erreur d'initialisation — WebGL non supporté ou GPU incompatible.<br>${err.message}
+      Erreur d'initialisation — ${err.message}
     </div>`
   );
 }

@@ -55,7 +55,7 @@ const FRAGMENT_SHADER = `
 `;
 
 export class ParticleMesh {
-  constructor({ bounds = 50 } = {}) {
+  constructor({ bounds = 50, count = MAX_COUNT } = {}) {
     const indices = new Float32Array(MAX_COUNT);
     for (let i = 0; i < MAX_COUNT; i++) indices[i] = i;
 
@@ -80,9 +80,10 @@ export class ParticleMesh {
 
     this.mesh = new THREE.Points(geometry, this._material);
     this.mesh.frustumCulled = false;
+    this.mesh.geometry.setDrawRange(0, count);
   }
 
   setPositionTexture(tex) { this._material.uniforms.texturePosition.value = tex; }
   setSize(n)              { this._material.uniforms.u_size.value  = n; }
-  setCount(n)             { this._material.uniforms.u_count.value = n; }
+  setCount(n)             { this._material.uniforms.u_count.value = n; this.mesh.geometry.setDrawRange(0, n); }
 }
