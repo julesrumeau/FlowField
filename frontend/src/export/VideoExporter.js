@@ -1,11 +1,15 @@
 const EXPORT_URL = '/export-api/export';
+
+// Ordre de préférence des codecs : on tente d'abord H.264 dans WebM (avc1) car le
+// service export peut alors faire un remux direct (rapide, sans ré-encodage).
+// VP9 et VP8 sont des fallbacks si le navigateur ne supporte pas avc1.
 const PREFERRED_CODECS = [
-  'video/webm;codecs=avc1',
-  'video/webm;codecs=vp9',
-  'video/webm;codecs=vp8',
-  'video/webm',
+  'video/webm;codecs=avc1',   // H.264 → remux direct côté serveur
+  'video/webm;codecs=vp9',    // VP9  → ré-encodage libx264
+  'video/webm;codecs=vp8',    // VP8  → ré-encodage libx264
+  'video/webm',               // codec laissé au choix du navigateur
 ];
-const BITRATE = 8_000_000;
+const BITRATE = 8_000_000;   // 8 Mbps : qualité suffisante pour du WebGL animé
 
 export class VideoExporter {
   constructor({ renderer }) {
@@ -31,9 +35,10 @@ export class VideoExporter {
     this._chunks    = [];
     this._startTime = Date.now();
 
-    // captureStream(0) = mode manuel : Chrome ne copie rien automatiquement au compositor.
-    // On soumet chaque frame via requestFrame() dans notre propre RAF, ce qui supprime la
-    // synchronisation implicite compositor↔GPU qui causait la chute 60→30fps.
+    // captureStream(0) = mode MANUEL de capture.
+    // captureStream(60) (mode auto) force le navigateur à synchroniser le canvas avec
+    // le compositor à chaque frame → ralentit le rendu de 60 à ~30fps pendant l'enregistrement.
+    // Avec 0, on contrôle soi-même quand chaque frame est soumise via requestFrame().
     const stream = this._renderer.canvas.captureStream(0);
     this._track = stream.getVideoTracks()[0];
 
@@ -42,6 +47,8 @@ export class VideoExporter {
       videoBitsPerSecond: BITRATE,
     });
 
+    // ondataavailable : MediaRecorder émet des chunks de données encodées périodiquement.
+    // On les accumule dans un tableau pour les assembler en un seul Blob à la fin.
     this._recorder.ondataavailable = e => {
       if (e.data.size > 0) this._chunks.push(e.data);
     };
@@ -53,8 +60,9 @@ export class VideoExporter {
     btnStop.disabled  = false;
     rec.style.display = 'inline';
 
-    // RAF dédié à la soumission de frames : tourne en parallèle du RAF du renderer,
-    // s'arrête dès que le recorder devient inactif.
+    // RAF dédié uniquement à la soumission de frames au stream vidéo.
+    // Il tourne en parallèle du RAF du renderer (qui gère la simulation et l'affichage).
+    // requestFrame() dit au stream "la frame actuelle du canvas est prête, enregistre-la".
     const submitFrame = () => {
       if (this._recorder?.state === 'recording' && this._track) {
         this._track.requestFrame();

@@ -16,6 +16,9 @@ export class Renderer {
 
   init() {
     this._paused   = false;
+    // antialias:false car les particules sont petites et le bloom masque les aliasings.
+    // preserveDrawingBuffer:true obligatoire pour captureStream() : sans ça, WebGL vide
+    // le canvas après chaque présentation à l'écran et l'enregistrement capte un canvas vide.
     this._renderer = new THREE.WebGLRenderer({ canvas: this._canvas, antialias: false, preserveDrawingBuffer: true });
     this._renderer.setPixelRatio(window.devicePixelRatio);
     this._renderer.setSize(window.innerWidth, window.innerHeight);
@@ -63,6 +66,8 @@ export class Renderer {
   _loop(ts) {
     if (this._paused) return;
     requestAnimationFrame(ts2 => this._loop(ts2));
+    // dt = temps écoulé depuis la dernière frame en secondes.
+    // Min(dt, 0.05) plafonne à 50ms pour éviter un saut brutal si l'onglet est mis en pause.
     const dt = this._lastTs === null ? 0.016 : Math.min((ts - this._lastTs) / 1000, 0.05);
     this._lastTs = ts;
     try {
