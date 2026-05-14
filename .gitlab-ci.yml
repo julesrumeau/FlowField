@@ -1,6 +1,7 @@
 stages:
   - test
   - package
+  - deploy
 
 variables:
   REGISTRY: dvp-srv-gitlab.campus12avenue.fr:5050
@@ -37,7 +38,7 @@ test_export:
     - if: '$CI_COMMIT_BRANCH == "main"'
 
 # ── PACKAGE (build + push images Docker) ────────────────────────
-package_frontend:
+.package_defaults: &package_defaults
   stage: package
   image: docker:27
   services:
@@ -48,45 +49,56 @@ package_frontend:
     DOCKER_TLS_CERTDIR: ""
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+package_frontend:
+  <<: *package_defaults
   script:
     - docker build -t $IMAGE_BASE/frontend:$CI_COMMIT_SHA -t $IMAGE_BASE/frontend:latest ./frontend
     - docker push "$IMAGE_BASE/frontend:$CI_COMMIT_SHA"
     - docker push "$IMAGE_BASE/frontend:latest"
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
 
 package_backend:
-  stage: package
-  image: docker:27
-  services:
-    - name: docker:27-dind
-      command: ["--insecure-registry=dvp-srv-gitlab.campus12avenue.fr:5050"]
-  variables:
-    DOCKER_DRIVER: overlay2
-    DOCKER_TLS_CERTDIR: ""
-  before_script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  <<: *package_defaults
   script:
     - docker build -t $IMAGE_BASE/backend:$CI_COMMIT_SHA -t $IMAGE_BASE/backend:latest ./backend
     - docker push "$IMAGE_BASE/backend:$CI_COMMIT_SHA"
     - docker push "$IMAGE_BASE/backend:latest"
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
 
 package_export:
-  stage: package
-  image: docker:27
-  services:
-    - name: docker:27-dind
-      command: ["--insecure-registry=dvp-srv-gitlab.campus12avenue.fr:5050"]
-  variables:
-    DOCKER_DRIVER: overlay2
-    DOCKER_TLS_CERTDIR: ""
-  before_script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  <<: *package_defaults
   script:
     - docker build -t $IMAGE_BASE/export:$CI_COMMIT_SHA -t $IMAGE_BASE/export:latest ./export
     - docker push "$IMAGE_BASE/export:$CI_COMMIT_SHA"
     - docker push "$IMAGE_BASE/export:latest"
+
+package_postgres:
+  <<: *package_defaults
+  script:
+    - docker pull postgres:16
+    - docker tag postgres:16 $IMAGE_BASE/postgres:16
+    - docker push "$IMAGE_BASE/postgres:16"
+
+# ── DEPLOY (trigger pipeline infra) ─────────────────────────────
+.trigger_defaults: &trigger_defaults
+  stage: deploy
+  variables:
+    IMAGE_TAG: $CI_COMMIT_SHA
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+
+trigger_infra_dev:
+  <<: *trigger_defaults
+  trigger:
+    project: tp-devops-2526/s04/infra
+    branch: develop
+    strategy: depend
+
+trigger_infra_prod:
+  <<: *trigger_defaults
+  trigger:
+    project: tp-devops-2526/s04/infra
+    branch: main
+    strategy: depend
