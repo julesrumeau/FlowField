@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,7 +16,7 @@ async def lifespan(app: FastAPI):
     await pool.close()   # ferme proprement toutes les connexions à l'arrêt du serveur
 
 
-app = FastAPI(title="FlowField API", lifespan=lifespan)
+app = FastAPI(title="FlowField API", lifespan=lifespan, root_path=os.getenv("ROOT_PATH", ""))
 
 # CORS ouvert (*) : ce projet n'a pas d'authentification ni de données sensibles.
 # En production avec auth, il faudrait restreindre allow_origins aux domaines autorisés.

@@ -18,6 +18,7 @@ services:
     image: dvp-srv-gitlab.campus12avenue.fr:5050/tp-devops-2526/s04/flowfield/backend:${IMAGE_TAG:-latest}
     environment:
       - DATABASE_URL=postgresql://flowfield:${DB_PASSWORD}@db:5432/flowfield
+      - ROOT_PATH=/api
     depends_on:
       db:
         condition: service_healthy
