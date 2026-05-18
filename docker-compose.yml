@@ -13,6 +13,7 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://flowfield:flowfield@db:5432/flowfield
+      - ROOT_PATH=/api
     depends_on:
       db:
         condition: service_healthy
