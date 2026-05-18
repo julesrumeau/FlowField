@@ -1,4 +1,5 @@
 import asyncio
+import os
 import shutil
 import subprocess
 import uuid
@@ -8,7 +9,13 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
-app = FastAPI()
+app = FastAPI(title="FlowField Export", root_path=os.getenv("ROOT_PATH", ""))
+
+
+@app.get("/health")
+async def health():
+    ffmpeg_ok = shutil.which("ffmpeg") is not None
+    return {"status": "ok", "ffmpeg": "ok" if ffmpeg_ok else "ko"}
 
 
 @app.post("/export")

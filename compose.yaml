@@ -34,6 +34,8 @@ services:
 
   export:
     image: dvp-srv-gitlab.campus12avenue.fr:5050/tp-devops-2526/s04/flowfield/export:${IMAGE_TAG:-latest}
+    environment:
+      - ROOT_PATH=/export-api
     restart: unless-stopped
 
 volumes:

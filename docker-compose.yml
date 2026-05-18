@@ -26,6 +26,8 @@ services:
 
   export:
     build: ./export
+    environment:
+      - ROOT_PATH=/export-api
 
   db:
     image: postgres:16-alpine
