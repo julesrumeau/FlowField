@@ -14,7 +14,7 @@ export class PresetPanel {
 
     const header = document.createElement('div');
     header.className = 'preset-header';
-    header.textContent = 'Presets';
+    header.textContent = 'PRESETS';
 
     const saveBtn = document.createElement('button');
     saveBtn.className = 'preset-save-btn';
