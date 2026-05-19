@@ -80,6 +80,8 @@ package_export_base:
 package_export:
   <<: *package_defaults
   variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
     DOCKER_BUILDKIT: "0"
   script:
     - docker pull "$IMAGE_BASE/export:latest" || true
