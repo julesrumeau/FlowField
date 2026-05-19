@@ -70,6 +70,7 @@ package_backend:
 
 package_export_base:
   <<: *package_defaults
+  allow_failure: true
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: manual
