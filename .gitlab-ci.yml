@@ -81,9 +81,6 @@ package_export:
   <<: *package_defaults
   variables:
     DOCKER_BUILDKIT: "0"
-  needs:
-    - job: package_export_base
-      optional: true
   script:
     - docker pull "$IMAGE_BASE/export:latest" || true
     - docker build --cache-from "$IMAGE_BASE/export:latest" -t $IMAGE_BASE/export:$CI_COMMIT_SHA -t $IMAGE_BASE/export:latest ./export
