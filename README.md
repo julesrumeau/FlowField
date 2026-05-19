@@ -9,13 +9,10 @@ Simulation de champ vectoriel 3D en temps réel. Des particules suivent un champ
 **Prérequis :** Docker et Docker Compose.
 
 ```bash
-docker compose -f docker-compose.yml up --build
+docker compose up --build
 ```
 
 Ouvrir [http://localhost](http://localhost).
-
-> `docker-compose.yml` — build local, credentials embarqués, usage développement.
-> `compose.yaml` — images depuis le registry CI, variable `DB_PASSWORD` requise, usage déploiement.
 
 ---
 
@@ -33,12 +30,14 @@ Ouvrir [http://localhost](http://localhost).
 
 ## Services
 
-| Service | Port | Rôle |
+| Service | Port exposé | Rôle |
 |---|---|---|
-| frontend (Nginx) | 80 | Assets statiques + proxy API |
-| backend (FastAPI) | 8000 | CRUD presets + healthcheck |
-| export (FastAPI + ffmpeg) | 8001 | Conversion WebM → MP4 |
-| db (PostgreSQL 16) | — | Stockage presets |
+| frontend (Nginx) | 80 | Assets statiques + reverse proxy vers les backends |
+| backend (FastAPI) | interne 8000 | CRUD presets |
+| export (FastAPI + ffmpeg) | interne 8001 | Conversion WebM → MP4 |
+| db (PostgreSQL 16) | interne | Stockage presets |
+
+Tous les accès passent par Nginx (port 80). Les ports internes ne sont pas exposés.
 
 ---
 
@@ -53,7 +52,7 @@ POST   /api/presets/            Crée un preset
 DELETE /api/presets/{id}        Supprime un preset (404 si inexistant)
 ```
 
-Documentation Swagger interactive : [http://localhost:8000/docs](http://localhost:8000/docs)
+Documentation Swagger interactive : [http://localhost/api/docs](http://localhost/api/docs)
 
 **POST /api/presets/ — corps**
 ```json
@@ -75,8 +74,11 @@ Documentation Swagger interactive : [http://localhost:8000/docs](http://localhos
 ### Service export (`/export-api/`)
 
 ```
+GET    /export-api/health       État du service et disponibilité de ffmpeg
 POST   /export-api/export       Reçoit un blob WebM, retourne un fichier MP4
 ```
+
+Documentation Swagger interactive : [http://localhost/export-api/docs](http://localhost/export-api/docs)
 
 ---
 
