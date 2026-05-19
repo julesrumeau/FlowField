@@ -79,6 +79,8 @@ package_export_base:
 
 package_export:
   <<: *package_defaults
+  variables:
+    DOCKER_BUILDKIT: "0"
   needs:
     - job: package_export_base
       optional: true
