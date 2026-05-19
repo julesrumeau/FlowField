@@ -1,5 +1,4 @@
-FROM python:3.12-slim
-RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+FROM dvp-srv-gitlab.campus12avenue.fr:5050/tp-devops-2526/s04/flowfield/export-base:latest
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

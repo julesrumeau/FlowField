@@ -68,8 +68,20 @@ package_backend:
     - docker push "$IMAGE_BASE/backend:$CI_COMMIT_SHA"
     - docker push "$IMAGE_BASE/backend:latest"
 
+package_export_base:
+  <<: *package_defaults
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+  script:
+    - docker build -t $IMAGE_BASE/export-base:latest -f ./export/Dockerfile.base ./export
+    - docker push "$IMAGE_BASE/export-base:latest"
+
 package_export:
   <<: *package_defaults
+  needs:
+    - job: package_export_base
+      optional: true
   script:
     - docker pull "$IMAGE_BASE/export:latest" || true
     - docker build --cache-from "$IMAGE_BASE/export:latest" -t $IMAGE_BASE/export:$CI_COMMIT_SHA -t $IMAGE_BASE/export:latest ./export
